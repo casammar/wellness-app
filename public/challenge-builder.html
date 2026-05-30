@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Wellness Challenge Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .animated-gradient {
+      background: linear-gradient(-45deg, #059669, #0d9488, #10b981, #0891b2);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+    }
+
+    @keyframes bounceDot {
+      0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+      40%           { transform: scale(1); opacity: 1; }
+    }
+    .dot { animation: bounceDot 1.4s ease-in-out infinite; }
+    .dot:nth-child(2) { animation-delay: 0.16s; }
+    .dot:nth-child(3) { animation-delay: 0.32s; }
+
+    @keyframes pulse-skeleton {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 0.8; }
+    }
+    .skeleton { animation: pulse-skeleton 1.5s ease-in-out infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background-color: #059669;
+      margin-left: 1px;
+      vertical-align: text-bottom;
+      animation: blink 0.9s infinite;
+    }
+
+    /* Focus pill active */
+    .focus-pill.active {
+      background-color: #ecfdf5;
+      border-color: #059669;
+      color: #065f46;
+    }
+
+    /* Goal card selected */
+    .goal-card.selected {
+      border-color: #059669;
+      background-color: #ecfdf5;
+    }
+    .goal-card.selected .goal-label {
+      color: #065f46;
+    }
+
+    /* Markdown output */
+    #result-body h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #065f46;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #result-body h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #0f766e;
+      margin-top: 1rem;
+      margin-bottom: 0.25rem;
+    }
+    #result-body ul {
+      list-style-type: disc;
+      padding-left: 1.4rem;
+      margin: 0.4rem 0;
+    }
+    #result-body ol {
+      list-style-type: decimal;
+      padding-left: 1.4rem;
+      margin: 0.4rem 0;
+    }
+    #result-body li {
+      margin: 0.2rem 0;
+      color: #374151;
+      line-height: 1.55;
+    }
+    #result-body p {
+      color: #4b5563;
+      margin: 0.5rem 0;
+      line-height: 1.65;
+    }
+    #result-body strong {
+      color: #1f2937;
+      font-weight: 600;
+    }
+    #result-body hr {
+      border-color: #e5e7eb;
+      margin: 1rem 0;
+    }
+    #result-body blockquote {
+      border-left: 3px solid #10b981;
+      padding-left: 1rem;
+      color: #6b7280;
+      font-style: italic;
+    }
+    #result-body table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin: 0.75rem 0;
+    }
+    #result-body th {
+      background: #f0fdf4;
+      color: #065f46;
+      font-weight: 600;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border: 1px solid #d1fae5;
+    }
+    #result-body td {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #e5e7eb;
+      color: #374151;
+      vertical-align: top;
+    }
+    #result-body tr:nth-child(even) td {
+      background: #f9fafb;
+    }
+
+    /* Range slider */
+    input[type="range"] {
+      accent-color: #059669;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loader {
+      width: 52px;
+      height: 52px;
+      border: 4px solid #d1fae5;
+      border-top-color: #059669;
+      border-radius: 50%;
+      animation: spin 0.85s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <header class="animated-gradient text-white py-14 px-6 relative">
+    <div class="absolute top-4 right-6 flex items-center gap-4">
+      <a href="/challenges.html" class="text-white/60 hover:text-white text-sm transition-colors">📚 Challenges</a>
+      <a href="/" class="text-white/60 hover:text-white text-sm transition-colors">Participant View →</a>
+    </div>
+    <div class="max-w-5xl mx-auto text-center">
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3">
+        Wellness Challenge Builder
+      </h1>
+      <p class="text-emerald-100 text-lg max-w-xl mx-auto leading-relaxed">
+        Design personalized team wellness programs that build habits, boost morale, and reduce burnout — in seconds.
+      </p>
+      <div class="flex items-center justify-center gap-6 mt-6 text-sm text-emerald-200/80">
+        <span>⚡ Real-time streaming</span>
+        <span class="text-emerald-300/40">|</span>
+        <span>🎯 HR-ready plans</span>
+        <span class="text-emerald-300/40">|</span>
+        <span>📋 Copy &amp; use instantly</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────────────────── -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="grid lg:grid-cols-[1fr_1.1fr] gap-8 items-start">
+
+      <!-- Left: Form card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+        <h2 class="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">⚙️</span>
+          Configure Your Challenge
+        </h2>
+
+        <form id="challenge-form" class="space-y-7" novalidate>
+
+          <!-- Team size -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-3">
+              Team Size
+            </label>
+            <div class="flex items-center gap-4">
+              <input
+                type="range" id="size-slider"
+                min="5" max="500" step="5" value="50"
+                class="flex-1 h-1.5 rounded-full cursor-pointer"
+              />
+              <div class="flex items-stretch border border-slate-200 rounded-xl overflow-hidden text-sm shadow-sm">
+                <input
+                  type="number" id="team-size"
+                  min="1" max="10000" value="50"
+                  class="w-16 px-2 py-2.5 text-center font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500"
+                />
+                <span class="px-3 py-2.5 bg-slate-50 text-slate-400 border-l border-slate-200 font-medium">
+                  people
+                </span>
+              </div>
+            </div>
+            <div class="flex justify-between text-xs text-slate-400 mt-1.5 px-0.5">
+              <span>5</span><span>250</span><span>500+</span>
+            </div>
+          </div>
+
+          <!-- Start date -->
+          <div>
+            <label for="start-date" class="block text-sm font-medium text-slate-700 mb-2">
+              Challenge Start Date
+            </label>
+            <input
+              type="date" id="start-date"
+              class="w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer"
+            />
+          </div>
+
+          <!-- Duration -->
+          <div>
+            <label for="duration" class="block text-sm font-medium text-slate-700 mb-2">
+              Duration
+            </label>
+            <select
+              id="duration"
+              class="w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer"
+            >
+              <option value="3 days">⚡ 3 Days</option>
+              <option value="1 week" selected>🎯 1 Week</option>
+              <option value="2 weeks">📅 2 Weeks</option>
+            </select>
+          </div>
+
+          <!-- Wellness focus -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Wellness Focus
+              <span class="text-slate-400 font-normal ml-1 text-xs">(pick one or more)</span>
+            </label>
+            <div id="focus-error" class="hidden text-xs text-red-500 mb-2">
+              Please select at least one focus area.
+            </div>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <button type="button" data-focus="Physical Activity"      class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">🏃 Physical Activity</button>
+              <button type="button" data-focus="Mental Health"          class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">🧠 Mental Health</button>
+              <button type="button" data-focus="Nutrition"              class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">🥗 Nutrition</button>
+              <button type="button" data-focus="Sleep Quality"          class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">😴 Sleep Quality</button>
+              <button type="button" data-focus="Social Connection"      class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">🤝 Social Connection</button>
+              <button type="button" data-focus="Mindfulness"            class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">🧘 Mindfulness</button>
+              <button type="button" data-focus="Hydration"              class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">💧 Hydration</button>
+              <button type="button" data-focus="Financial Wellness"     class="focus-pill px-3.5 py-1.5 rounded-full border-2 border-slate-200 text-slate-600 text-sm font-medium hover:border-emerald-400 transition-all">💰 Financial Wellness</button>
+            </div>
+          </div>
+
+          <!-- Engagement goal -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Primary Goal
+            </label>
+            <div id="goal-error" class="hidden text-xs text-red-500 mb-2">
+              Please select a primary goal.
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <label class="goal-card flex items-center gap-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-300 transition-all">
+                <input type="radio" name="goal" value="Build Healthy Habits" class="sr-only" />
+                <span class="text-xl shrink-0">💪</span>
+                <span class="goal-label text-sm font-medium text-slate-700 leading-tight">Build Healthy Habits</span>
+              </label>
+              <label class="goal-card flex items-center gap-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-300 transition-all">
+                <input type="radio" name="goal" value="Boost Team Morale" class="sr-only" />
+                <span class="text-xl shrink-0">😊</span>
+                <span class="goal-label text-sm font-medium text-slate-700 leading-tight">Boost Team Morale</span>
+              </label>
+              <label class="goal-card flex items-center gap-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-300 transition-all">
+                <input type="radio" name="goal" value="Reduce Burnout" class="sr-only" />
+                <span class="text-xl shrink-0">🔋</span>
+                <span class="goal-label text-sm font-medium text-slate-700 leading-tight">Reduce Burnout</span>
+              </label>
+              <label class="goal-card flex items-center gap-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-300 transition-all">
+                <input type="radio" name="goal" value="Strengthen Team Bonding" class="sr-only" />
+                <span class="text-xl shrink-0">🤝</span>
+                <span class="goal-label text-sm font-medium text-slate-700 leading-tight">Strengthen Team Bonding</span>
+              </label>
+              <label class="goal-card flex items-center gap-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-300 transition-all">
+                <input type="radio" name="goal" value="Increase Productivity" class="sr-only" />
+                <span class="text-xl shrink-0">🎯</span>
+                <span class="goal-label text-sm font-medium text-slate-700 leading-tight">Increase Productivity</span>
+              </label>
+              <label class="goal-card flex items-center gap-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-300 transition-all">
+                <input type="radio" name="goal" value="Reduce Stress" class="sr-only" />
+                <span class="text-xl shrink-0">😌</span>
+                <span class="goal-label text-sm font-medium text-slate-700 leading-tight">Reduce Stress</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button
+            type="submit"
+            id="generate-btn"
+            class="w-full py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <span id="btn-icon">✨</span>
+            <span id="btn-label">Generate Wellness Plan</span>
+          </button>
+
+        </form>
+      </div>
+
+      <!-- Right: Results panel -->
+      <div id="result-panel" class="lg:sticky lg:top-8">
+
+        <!-- Empty state -->
+        <div id="state-empty" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-14 text-center">
+          <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">🌱</div>
+          <h3 class="text-base font-semibold text-slate-700 mb-2">Your plan will appear here</h3>
+          <p class="text-slate-400 text-sm max-w-xs mx-auto leading-relaxed">
+            Configure your challenge on the left, then click "Generate" to create a full, ready-to-use wellness program.
+          </p>
+          <div class="mt-6 flex items-center justify-center gap-4 text-xs text-slate-300">
+            <span>🏃 Physical</span>
+            <span>🧠 Mental</span>
+            <span>🥗 Nutrition</span>
+            <span>😴 Sleep</span>
+          </div>
+        </div>
+
+        <!-- Loading state -->
+        <div id="state-loading" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-16 flex flex-col items-center justify-center gap-5 text-center">
+          <div class="loader"></div>
+          <div>
+            <p id="loading-msg" class="text-base font-semibold text-slate-700">Generating your plan…</p>
+            <p class="text-sm text-slate-400 mt-1">This usually takes 15–30 seconds</p>
+          </div>
+        </div>
+
+        <!-- Result card -->
+        <div id="state-result" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <!-- Result header -->
+          <div class="animated-gradient px-6 py-5">
+            <p class="text-emerald-100 text-xs font-medium mb-0.5 uppercase tracking-wider">AI-Generated Plan</p>
+            <p id="result-meta" class="text-white font-semibold text-sm"></p>
+          </div>
+          <!-- Scrollable content -->
+          <div id="result-scroll" class="p-6 overflow-y-auto max-h-[60vh]">
+            <div id="result-body"></div>
+            <span id="cursor" class="hidden cursor"></span>
+          </div>
+          <!-- Action footer — shown only after plan is fully written -->
+          <div id="result-footer" class="hidden animated-gradient px-6 py-4 flex items-center justify-end gap-3">
+            <button
+              id="copy-btn"
+              onclick="copyPlan()"
+              class="flex items-center gap-1.5 px-4 py-2 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold rounded-lg transition-all border border-white/20"
+            >
+              <span id="copy-icon">📋</span>
+              <span id="copy-label">Copy</span>
+            </button>
+            <button
+              id="export-btn"
+              onclick="exportCalendar()"
+              class="flex items-center gap-1.5 px-4 py-2 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold rounded-lg transition-all border border-white/20"
+            >
+              <span>📅</span>
+              <span id="export-label">Export .ics</span>
+            </button>
+            <button
+              id="activate-btn"
+              onclick="activateChallenge()"
+              class="flex items-center gap-1.5 px-4 py-2 bg-white text-emerald-700 hover:bg-emerald-50 text-sm font-bold rounded-lg transition-all shadow-sm"
+            >
+              <span id="activate-icon">🚀</span>
+              <span id="activate-label">Open Participant View</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 mt-2">
+    <p id="footer-model" class="text-xs text-slate-400"></p>
+  </footer>
+
+  <!-- Toast -->
+  <div
+    id="toast"
+    class="fixed bottom-6 right-6 bg-slate-800 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300"
+  >
+    ✅ Copied to clipboard!
+  </div>
+
+  <script>
+    // ── Config ────────────────────────────────────────────────────────
+    marked.setOptions({ breaks: true, gfm: true });
+
+    // ── State ─────────────────────────────────────────────────────────
+    let selectedFocuses = [];
+    let rawMarkdown = '';
+    let isGenerating = false;
+    let currentChallengeNameGuess = 'Wellness Challenge';
+    let savedTeamSize = 0, savedFocus = '', savedGoal = '';
+
+    // Set default start date to today
+    document.getElementById('start-date').value = new Date().toISOString().slice(0, 10);
+
+    // ── Fetch model config ────────────────────────────────────────────
+    fetch('/api/config').then(r => r.json()).then(({ provider, model }) => {
+      const label = provider === 'lmstudio' ? `LM Studio · ${model}` : `Claude · ${model}`;
+      document.getElementById('footer-model').textContent = `Model: ${label}`;
+      document.getElementById('loading-msg').textContent = `${provider === 'lmstudio' ? model : 'Claude'} is crafting your plan…`;
+    }).catch(() => {});
+
+    // ── Team-size sync ────────────────────────────────────────────────
+    const slider     = document.getElementById('size-slider');
+    const sizeInput  = document.getElementById('team-size');
+
+    slider.addEventListener('input', () => { sizeInput.value = slider.value; });
+    sizeInput.addEventListener('input', () => {
+      const v = Math.min(Math.max(parseInt(sizeInput.value) || 5, 5), 500);
+      slider.value = v;
+    });
+
+    // ── Focus pills ───────────────────────────────────────────────────
+    document.querySelectorAll('.focus-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        pill.classList.toggle('active');
+        const focus = pill.dataset.focus;
+        selectedFocuses = pill.classList.contains('active')
+          ? [...selectedFocuses, focus]
+          : selectedFocuses.filter(f => f !== focus);
+        document.getElementById('focus-error').classList.add('hidden');
+      });
+    });
+
+    // ── Goal radio cards ──────────────────────────────────────────────
+    document.querySelectorAll('.goal-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.goal-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('goal-error').classList.add('hidden');
+      });
+    });
+
+    // ── Helpers ───────────────────────────────────────────────────────
+    function showState(name) {
+      ['empty', 'loading', 'result'].forEach(s =>
+        document.getElementById(`state-${s}`).classList.toggle('hidden', s !== name)
+      );
+    }
+
+    function setButton(generating) {
+      const btn   = document.getElementById('generate-btn');
+      const icon  = document.getElementById('btn-icon');
+      const label = document.getElementById('btn-label');
+      btn.disabled = generating;
+      if (generating) {
+        icon.outerHTML  = `<span id="btn-icon" class="flex gap-0.5"><span class="dot w-1.5 h-1.5 bg-white rounded-full"></span><span class="dot w-1.5 h-1.5 bg-white rounded-full"></span><span class="dot w-1.5 h-1.5 bg-white rounded-full"></span></span>`;
+        label.textContent = 'Generating…';
+      } else {
+        document.getElementById('btn-icon').outerHTML = `<span id="btn-icon">✨</span>`;
+        document.getElementById('btn-label').textContent = 'Generate Wellness Plan';
+      }
+    }
+
+    // ── Form submit ───────────────────────────────────────────────────
+    document.getElementById('challenge-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      if (isGenerating) return;
+
+      const teamSize = parseInt(sizeInput.value);
+      const duration = document.getElementById('duration').value;
+      const goalEl   = document.querySelector('input[name="goal"]:checked');
+
+      let valid = true;
+      if (selectedFocuses.length === 0) {
+        document.getElementById('focus-error').classList.remove('hidden');
+        valid = false;
+      }
+      if (!goalEl) {
+        document.getElementById('goal-error').classList.remove('hidden');
+        valid = false;
+      }
+      if (!valid) return;
+
+      const wellnessFocus  = selectedFocuses.join(', ');
+      const engagementGoal = goalEl.value;
+
+      savedTeamSize = teamSize;
+      savedFocus    = wellnessFocus;
+      savedGoal     = engagementGoal;
+      isGenerating  = true;
+      setButton(true);
+      showState('loading');
+      rawMarkdown = '';
+
+      // Set result meta label
+      document.getElementById('result-meta').textContent =
+        `${teamSize} people · ${duration} · ${engagementGoal}`;
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teamSize, duration, wellnessFocus, engagementGoal }),
+        });
+
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        const body    = document.getElementById('result-body');
+        const cursor  = document.getElementById('cursor');
+        const scroll  = document.getElementById('result-scroll');
+
+        showState('result');
+        cursor.classList.remove('hidden');
+        document.getElementById('result-footer').classList.add('hidden');
+        document.getElementById('activate-icon').textContent  = '🚀';
+        document.getElementById('activate-label').textContent = 'Open Participant View';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const lines = decoder.decode(value).split('\n');
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const payload = line.slice(6).trim();
+            if (payload === '[DONE]') {
+              cursor.classList.add('hidden');
+              savePlan();
+              document.getElementById('result-footer').classList.remove('hidden');
+              break;
+            }
+            try {
+              const { text, error } = JSON.parse(payload);
+              if (error) throw new Error(error);
+              if (text) {
+                rawMarkdown += text;
+                body.innerHTML = marked.parse(rawMarkdown);
+                scroll.scrollTop = scroll.scrollHeight;
+                const boldMatch = rawMarkdown.match(/\*\*([^*\n]{3,60})\*\*/);
+                if (boldMatch) currentChallengeNameGuess = boldMatch[1];
+              }
+            } catch (parseErr) { /* partial chunk, ignore */ }
+          }
+        }
+
+      } catch (err) {
+        document.getElementById('result-body').innerHTML =
+          `<p class="text-red-500 text-sm">⚠️ Error: ${err.message}. Please try again.</p>`;
+        document.getElementById('cursor').classList.add('hidden');
+        document.getElementById('result-footer').classList.add('hidden');
+      }
+
+      isGenerating = false;
+      setButton(false);
+    });
+
+    // ── Auto-save plan (called when stream completes) ─────────────────
+    async function savePlan() {
+      if (!rawMarkdown) return;
+      await fetch('/api/save-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planText:      rawMarkdown,
+          startDate:     document.getElementById('start-date').value || new Date().toISOString().slice(0, 10),
+          duration:      document.getElementById('duration').value,
+          teamSize:      savedTeamSize,
+          wellnessFocus: savedFocus,
+          engagementGoal: savedGoal,
+        }),
+      }).catch(() => {});
+    }
+
+    // ── Activate challenge ────────────────────────────────────────────
+    function activateChallenge() {
+      if (!rawMarkdown) return;
+      const icon  = document.getElementById('activate-icon');
+      const label = document.getElementById('activate-label');
+      icon.textContent  = '✅';
+      label.textContent = 'Opening…';
+      const toast = document.getElementById('toast');
+      toast.textContent = '✅ Challenge is live! Opening participant view…';
+      toast.style.opacity = '1';
+      setTimeout(() => { window.location.href = '/'; }, 1000);
+    }
+
+    // ── Export calendar ───────────────────────────────────────────────
+    async function exportCalendar() {
+      if (!rawMarkdown) return;
+      const startDate = document.getElementById('start-date').value || new Date().toISOString().slice(0, 10);
+      const label = document.getElementById('export-label');
+      label.textContent = 'Exporting…';
+      try {
+        const res = await fetch('/api/export-calendar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planText: rawMarkdown, startDate, challengeName: currentChallengeNameGuess }),
+        });
+        if (!res.ok) {
+          const { error } = await res.json();
+          throw new Error(error);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: 'wellness-challenge.ics' });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        label.textContent = 'Downloaded!';
+        setTimeout(() => { label.textContent = 'Export .ics'; }, 2500);
+      } catch (err) {
+        label.textContent = 'Export .ics';
+        alert(`Export failed: ${err.message}`);
+      }
+    }
+
+    // ── Copy ──────────────────────────────────────────────────────────
+    async function copyPlan() {
+      if (!rawMarkdown) return;
+      try {
+        await navigator.clipboard.writeText(rawMarkdown);
+      } catch {
+        const ta = Object.assign(document.createElement('textarea'), { value: rawMarkdown });
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      const icon  = document.getElementById('copy-icon');
+      const label = document.getElementById('copy-label');
+      icon.textContent  = '✅';
+      label.textContent = 'Copied!';
+      setTimeout(() => { icon.textContent = '📋'; label.textContent = 'Copy'; }, 2200);
+
+      const toast = document.getElementById('toast');
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+    }
+  </script>
+</body>
+</html>

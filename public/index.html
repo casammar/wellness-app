@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Wellness Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .animated-gradient {
+      background: linear-gradient(-45deg, #059669, #0d9488, #10b981, #0891b2);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+    }
+
+    .tab-btn.active {
+      background: #059669;
+      color: #fff;
+      border-color: #059669;
+    }
+
+    .activity-btn:hover {
+      border-color: #059669;
+      background: #f0fdf4;
+    }
+    .activity-btn:active { transform: scale(0.97); }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .modal-box { animation: slideUp 0.18s ease; }
+
+    .progress-bar-fill {
+      transition: width 0.5s ease;
+      background: linear-gradient(90deg, #059669, #10b981);
+    }
+    .progress-bar-fill.done { background: linear-gradient(90deg, #0891b2, #06b6d4); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .log-entry { animation: fadeIn 0.2s ease; }
+
+    @keyframes quoteFade {
+      0%   { opacity: 0; transform: translateY(4px); }
+      10%  { opacity: 1; transform: translateY(0); }
+      88%  { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-4px); }
+    }
+    .quote-animate { animation: quoteFade 12s ease forwards; }
+
+    @keyframes chatSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .chat-open { animation: chatSlideUp 0.2s ease; }
+    [id^="chat-messages"] { scrollbar-width: thin; scrollbar-color: #d1fae5 transparent; }
+    [id^="chat-messages"]::-webkit-scrollbar { width: 4px; }
+    [id^="chat-messages"]::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 2px; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="animated-gradient text-white py-10 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-4">
+          <a href="/challenge-builder.html" class="inline-flex items-center gap-1 text-emerald-200 hover:text-white text-sm transition-colors">← Challenge Builder</a>
+          <a href="/challenges.html" class="inline-flex items-center gap-1.5 text-emerald-200 hover:text-white text-sm transition-colors">📚 Challenges</a>
+          <a href="/advisor.html" class="inline-flex items-center gap-1.5 text-emerald-200 hover:text-white text-sm transition-colors">🎯 Program Advisor</a>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="today-label" class="text-emerald-200 text-sm font-medium"></span>
+          <button onclick="openProfileModal()" class="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3 py-1.5 rounded-full border border-white/20 transition-all">
+            <span id="profile-avatar" class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">?</span>
+            <span id="profile-btn-label">Set up profile</span>
+          </button>
+        </div>
+      </div>
+      <h1 id="greeting" class="text-3xl md:text-4xl font-bold tracking-tight mb-1">Daily Wellness Tracker</h1>
+      <p id="challenge-subtitle" class="text-emerald-100 text-base opacity-80">Log your activities and track your daily goals.</p>
+      <p id="profile-stats-header" class="hidden text-emerald-200/70 text-sm mt-1"></p>
+    </div>
+  </header>
+
+  <!-- ── Quote Banner ─────────────────────────────────────────────────────── -->
+  <div class="bg-emerald-50 border-b border-emerald-100">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+      <span class="text-emerald-500 text-lg shrink-0">💬</span>
+      <p id="quote-text" class="text-emerald-800 text-base italic flex-1 leading-snug"></p>
+      <button onclick="nextQuote()" class="shrink-0 text-emerald-400 hover:text-emerald-600 transition-colors text-xs font-medium px-2 py-1 rounded-md hover:bg-emerald-100" title="Next quote">↻</button>
+    </div>
+  </div>
+
+  <!-- ── Main ────────────────────────────────────────────────────────────── -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- ── Advisor promo banner ─────────────────────────────────────────────── -->
+    <a href="/advisor.html" class="block mb-6 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-2xl p-5 shadow-sm transition-all hover:shadow-md">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <span class="text-3xl shrink-0">🎯</span>
+          <div>
+            <p class="text-base font-semibold leading-tight">Not sure where to start?</p>
+            <p class="text-sm text-emerald-100 mt-0.5">Describe your goals and our AI advisor will match you with the right wellness programs.</p>
+          </div>
+        </div>
+        <span class="shrink-0 text-sm font-semibold bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl whitespace-nowrap transition-colors">Find Programs →</span>
+      </div>
+    </a>
+
+    <!-- ── Challenge Progress Card ────────────────────────────────────────── -->
+    <div id="challenge-progress-card" class="hidden mb-6 bg-white rounded-2xl shadow-sm border border-emerald-200 p-5">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Active Challenge</span>
+            <span id="cp-status" class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Active</span>
+          </div>
+          <h2 id="cp-name" class="text-lg font-bold text-slate-800"></h2>
+          <p id="cp-dates" class="text-sm text-slate-400 mt-0.5"></p>
+        </div>
+        <div class="text-right shrink-0">
+          <p class="text-2xl font-bold text-emerald-600"><span id="cp-points">0</span></p>
+          <p class="text-xs text-slate-400">of <span id="cp-max-points">0</span> pts possible</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 mb-2.5">
+        <span class="text-sm font-medium text-slate-600 w-24 shrink-0" id="cp-day-label">Day 1 of 7</span>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div id="cp-day-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width:0%"></div>
+        </div>
+        <span class="text-sm text-slate-400 shrink-0 w-20 text-right" id="cp-days-left"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium text-slate-600 w-24 shrink-0">Completion</span>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div id="cp-completion-bar" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width:0%"></div>
+        </div>
+        <span class="text-sm font-semibold text-slate-700 shrink-0 w-20 text-right" id="cp-completion-pct">0%</span>
+      </div>
+      <div id="goals-section" class="mt-4 pt-4 border-t border-emerald-100"></div>
+    </div>
+
+    <div class="grid lg:grid-cols-[1.1fr_1fr] gap-6 items-start">
+
+      <!-- ── Left: Log + Feed ───────────────────────────────────────────── -->
+      <div class="space-y-5">
+
+        <!-- Log an activity -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">➕</span>
+            Log an Activity
+          </h2>
+          <div class="flex gap-2 mb-5">
+            <button class="tab-btn active flex-1 py-2.5 text-base font-semibold rounded-xl border-2 border-slate-200 text-slate-600 transition-all" data-tab="physical" onclick="switchTab('physical')">🏃 Physical</button>
+            <button class="tab-btn flex-1 py-2.5 text-base font-semibold rounded-xl border-2 border-slate-200 text-slate-600 transition-all" data-tab="nutrition" onclick="switchTab('nutrition')">🥗 Nutrition</button>
+            <button class="tab-btn flex-1 py-2.5 text-base font-semibold rounded-xl border-2 border-slate-200 text-slate-600 transition-all" data-tab="mind" onclick="switchTab('mind')">🧘 Mind</button>
+          </div>
+          <div id="tab-physical" class="grid grid-cols-4 gap-2"></div>
+          <div id="tab-nutrition" class="hidden grid grid-cols-4 gap-2"></div>
+          <div id="tab-mind" class="hidden grid grid-cols-4 gap-2"></div>
+        </div>
+
+        <!-- Today's log feed -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">📋</span>
+            Today's Log
+          </h2>
+          <div id="log-feed">
+            <p class="text-slate-400 text-sm text-center py-6">Nothing logged yet today.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Right: Totals + Recap ─────────────────────────────────────── -->
+      <div class="space-y-5 lg:sticky lg:top-8">
+
+        <!-- Daily totals -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">📊</span>
+            Today's Totals
+          </h2>
+          <div id="totals-grid" class="grid grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- Yesterday's recap -->
+        <div id="recap-card" class="hidden bg-amber-50 rounded-2xl border border-amber-100 p-5">
+          <h2 class="text-base font-semibold text-amber-800 mb-3 flex items-center gap-2">
+            <span>📅</span> Yesterday's Recap
+          </h2>
+          <div id="recap-messages" class="space-y-2"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Activity Log Modal ───────────────────────────────────────────────── -->
+  <div id="modal-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onclick="closeModal(event)">
+    <div class="modal-box bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
+      <div class="flex items-center gap-3 mb-5">
+        <span id="modal-emoji" class="text-3xl"></span>
+        <div>
+          <h3 id="modal-title" class="text-lg font-bold text-slate-800"></h3>
+          <p id="modal-subtitle" class="text-sm text-slate-400"></p>
+        </div>
+      </div>
+      <div id="modal-fields" class="space-y-4"></div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeModal()" class="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+        <button onclick="submitLog()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all">Log It ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Profile Modal ────────────────────────────────────────────────────── -->
+  <div id="profile-modal-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onclick="closeProfileModal(event)">
+    <div class="modal-box bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
+      <h3 class="text-lg font-bold text-slate-800 mb-1">Your Profile</h3>
+      <p class="text-xs text-slate-400 mb-5">Used to personalize your tracker experience.</p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Name</label>
+          <input id="pf-name" type="text" placeholder="e.g. Alex Johnson"
+            class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Age</label>
+            <input id="pf-age" type="number" placeholder="32" min="1" max="120"
+              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Height</label>
+            <input id="pf-height" type="text" placeholder='5\'10"'
+              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Weight</label>
+            <input id="pf-weight" type="text" placeholder="170 lbs"
+              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeProfileModal()" class="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+        <button onclick="saveProfile()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ─────────────────────────────────────────────────────────────── -->
+  <div id="toast" class="fixed bottom-6 left-6 bg-slate-800 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300">
+    ✅ <span id="toast-msg">Logged!</span>
+  </div>
+
+  <!-- ── Chat FABs ───────────────────────────────────────────────────────── -->
+  <button onclick="toggleZendesk()"
+    class="fixed bottom-6 right-6 w-14 h-14 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-full shadow-xl flex items-center justify-center text-2xl z-40 transition-all hover:scale-105"
+    title="Support Chat">
+    💬
+  </button>
+  <button id="chat-fab-wellness" onclick="toggleChat('wellness')"
+    class="fixed bottom-6 right-20 w-14 h-14 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-full shadow-xl flex items-center justify-center text-2xl z-40 transition-all hover:scale-105"
+    title="Mental Wellness Coach">
+    🧠
+  </button>
+  <button id="chat-fab-nutrition" onclick="toggleChat('nutrition')"
+    class="fixed bottom-6 right-36 w-14 h-14 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-full shadow-xl flex items-center justify-center text-2xl z-40 transition-all hover:scale-105"
+    title="Nutrition Coach">
+    🥗
+  </button>
+
+  <!-- ── Wellness chat panel ─────────────────────────────────────────────── -->
+  <div id="chat-panel-wellness" class="hidden fixed bottom-24 right-6 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 flex flex-col overflow-hidden" style="max-height:520px">
+
+    <!-- Header -->
+    <div class="animated-gradient text-white px-4 py-3 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center shrink-0">🧠</div>
+        <div>
+          <p class="text-sm font-semibold leading-tight">Mental Wellness Coach</p>
+          <p class="text-[10px] text-emerald-100">AI companion · Not a licensed therapist</p>
+        </div>
+      </div>
+      <button onclick="toggleChat('wellness')" class="text-white/70 hover:text-white text-2xl leading-none w-7 h-7 flex items-center justify-center">×</button>
+    </div>
+
+    <!-- Messages -->
+    <div id="chat-messages-wellness" class="overflow-y-auto p-4 space-y-3" style="min-height:180px; max-height:250px">
+      <div class="flex gap-2">
+        <span class="shrink-0 w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-sm mt-0.5">🧠</span>
+        <div class="bg-slate-50 rounded-2xl rounded-tl-sm px-3 py-2.5 max-w-[85%]">
+          <p class="text-xs text-slate-700 leading-relaxed">Hi! I'm Sage, your mental wellness companion. I'm here to listen and support you. How are you feeling today?</p>
+          <p class="text-[10px] text-slate-400 mt-1">Not a substitute for professional mental health care.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sample questions -->
+    <div id="chat-samples-wellness" class="px-4 py-2.5 border-t border-slate-50 shrink-0">
+      <p class="text-[10px] text-slate-400 mb-2 font-medium uppercase tracking-wide">Try asking:</p>
+      <div class="flex flex-wrap gap-1.5">
+        <button onclick="askSample(this,'wellness')" data-q="I'm feeling stressed about work lately. What can I do?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">😓 I'm feeling stressed</button>
+        <button onclick="askSample(this,'wellness')" data-q="How can I improve my sleep quality?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">😴 Help me sleep better</button>
+        <button onclick="askSample(this,'wellness')" data-q="Can you guide me through a quick mindfulness exercise right now?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">🧘 Quick mindfulness tip</button>
+        <button onclick="askSample(this,'wellness')" data-q="I've been feeling anxious lately. What techniques help?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">😰 Feeling anxious</button>
+        <button onclick="askSample(this,'wellness')" data-q="I'm struggling to stay motivated to exercise and eat healthy. Any tips?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">💪 Stay motivated</button>
+        <button onclick="askSample(this,'wellness')" data-q="I'm feeling overwhelmed and don't know where to start. How do I manage this?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">😵 Managing overwhelm</button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="px-4 py-3 border-t border-slate-100 shrink-0">
+      <div class="flex gap-2">
+        <input id="chat-input-wellness" type="text" placeholder="How are you feeling today?"
+          class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat('wellness');}" />
+        <button id="chat-send-btn-wellness" onclick="sendChat('wellness')"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-40">
+          →
+        </button>
+      </div>
+      <p class="text-[9px] text-slate-300 text-center mt-2">In crisis? Call/text <strong class="text-slate-400">988</strong> · Text HOME to <strong class="text-slate-400">741741</strong></p>
+    </div>
+  </div>
+
+  <!-- ── Nutrition chat panel ─────────────────────────────────────────────── -->
+  <div id="chat-panel-nutrition" class="hidden fixed bottom-24 right-6 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 flex flex-col overflow-hidden" style="max-height:520px">
+
+    <div class="animated-gradient text-white px-4 py-3 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center shrink-0">🥗</div>
+        <div>
+          <p class="text-sm font-semibold leading-tight">Nutrition Coach</p>
+          <p class="text-[10px] text-emerald-100">AI companion · Not a registered dietitian</p>
+        </div>
+      </div>
+      <button onclick="toggleChat('nutrition')" class="text-white/70 hover:text-white text-2xl leading-none w-7 h-7 flex items-center justify-center">×</button>
+    </div>
+
+    <div id="chat-messages-nutrition" class="overflow-y-auto p-4 space-y-3" style="min-height:180px; max-height:250px">
+      <div class="flex gap-2">
+        <span class="shrink-0 w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-sm mt-0.5">🥗</span>
+        <div class="bg-slate-50 rounded-2xl rounded-tl-sm px-3 py-2.5 max-w-[85%]">
+          <p class="text-xs text-slate-700 leading-relaxed">Hi! I'm Nori, your nutrition coach. Ask me anything about healthy eating, meal planning, or building better food habits!</p>
+          <p class="text-[10px] text-slate-400 mt-1">Not a substitute for a registered dietitian.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="chat-samples-nutrition" class="px-4 py-2.5 border-t border-slate-50 shrink-0">
+      <p class="text-[10px] text-slate-400 mb-2 font-medium uppercase tracking-wide">Try asking:</p>
+      <div class="flex flex-wrap gap-1.5">
+        <button onclick="askSample(this,'nutrition')" data-q="What are the best foods to eat before a workout for energy?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">⚡ Pre-workout foods</button>
+        <button onclick="askSample(this,'nutrition')" data-q="How can I add more protein to my diet without eating too much meat?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">🥩 Eat more protein</button>
+        <button onclick="askSample(this,'nutrition')" data-q="What are some quick, healthy snack ideas for during the workday?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">🥜 Healthy snack ideas</button>
+        <button onclick="askSample(this,'nutrition')" data-q="I have strong sugar cravings throughout the day. How can I reduce them?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">🍬 Reduce sugar cravings</button>
+        <button onclick="askSample(this,'nutrition')" data-q="What are some tips for meal prepping to eat healthier throughout the week?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">📦 Meal prep tips</button>
+        <button onclick="askSample(this,'nutrition')" data-q="What foods give sustained energy throughout the day without the afternoon crash?" class="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full hover:bg-emerald-100 transition-colors">🔋 Sustained energy foods</button>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-t border-slate-100 shrink-0">
+      <div class="flex gap-2">
+        <input id="chat-input-nutrition" type="text" placeholder="Ask about nutrition…"
+          class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat('nutrition');}" />
+        <button id="chat-send-btn-nutrition" onclick="sendChat('nutrition')"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-40">
+          →
+        </button>
+      </div>
+      <p class="text-[9px] text-slate-300 text-center mt-2">For medical dietary needs, consult a <strong class="text-slate-400">registered dietitian</strong></p>
+    </div>
+  </div>
+
+  <script>
+    // ── Quotes ────────────────────────────────────────────────────────────────
+    const QUOTES = [
+      { text: "The only bad workout is the one that didn't happen." },
+      { text: "Take care of your body. It's the only place you have to live.", author: "Jim Rohn" },
+      { text: "Fitness is not about being better than someone else. It's about being better than you used to be." },
+      { text: "Your body can stand almost anything. It's your mind that you have to convince." },
+      { text: "Movement is medicine." },
+      { text: "You don't have to be perfect to be amazing." },
+      { text: "Rest when you're weary. Refresh and renew yourself, your body, your mind, your spirit.", author: "Ralph Marston" },
+      { text: "Self-care is not selfish. You cannot pour from an empty cup." },
+      { text: "Mental health is not a destination, but a process. It's about how you drive, not where you're going.", author: "Noam Shpancer" },
+      { text: "You are enough, just as you are." },
+      { text: "Small steps every day lead to big results." },
+      { text: "Progress, not perfection." },
+      { text: "Every day is a new beginning. Take a deep breath and start again." },
+      { text: "Believe in yourself and all that you are." },
+      { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+      { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+      { text: "You are stronger than you think." },
+      { text: "Consistency is what transforms average into excellence." },
+      { text: "Strength doesn't come from what you can do. It comes from overcoming the things you once thought you couldn't.", author: "Rikki Rogers" },
+      { text: "Your health is an investment, not an expense." },
+      { text: "The groundwork of all happiness is health.", author: "Leigh Hunt" },
+      { text: "A healthy outside starts from the inside.", author: "Robert Urich" },
+      { text: "To keep the body in good health is a duty.", author: "Buddha" },
+      { text: "An early morning walk is a blessing for the whole day.", author: "Henry David Thoreau" },
+      { text: "It does not matter how slowly you go, as long as you do not stop.", author: "Confucius" },
+    ];
+
+    let quoteIndex = Math.floor(Math.random() * QUOTES.length);
+
+    function renderQuote() {
+      const q = QUOTES[quoteIndex];
+      const el = document.getElementById('quote-text');
+      el.classList.remove('quote-animate');
+      void el.offsetWidth; // reflow to restart animation
+      el.textContent = q.author ? `"${q.text}" — ${q.author}` : `"${q.text}"`;
+      el.classList.add('quote-animate');
+    }
+
+    function nextQuote() {
+      quoteIndex = (quoteIndex + 1) % QUOTES.length;
+      renderQuote();
+    }
+
+    renderQuote();
+    setInterval(nextQuote, 14000);
+
+    // ── Activity definitions ──────────────────────────────────────────────────
+    const ACTIVITIES = {
+      physical: [
+        { id:'steps',  emoji:'👟', label:'Steps',    fields:[{name:'value',  label:'Steps taken',   type:'number', placeholder:'10000', unit:'steps'}] },
+        { id:'run',    emoji:'🏃', label:'Run',      fields:[{name:'value',  label:'Distance (mi)', type:'number', placeholder:'3.0',   unit:'mi'},
+                                                              {name:'duration',label:'Duration (min)',type:'number', placeholder:'30',    unit:'min'}] },
+        { id:'walk',   emoji:'🚶', label:'Walk',     fields:[{name:'duration',label:'Duration (min)',type:'number', placeholder:'20',    unit:'min'}] },
+        { id:'cycle',  emoji:'🚴', label:'Cycle',    fields:[{name:'duration',label:'Duration (min)',type:'number', placeholder:'30',    unit:'min'}] },
+        { id:'gym',    emoji:'🏋️', label:'Gym',      fields:[{name:'duration',label:'Duration (min)',type:'number', placeholder:'45',    unit:'min'}] },
+        { id:'yoga',   emoji:'🧘', label:'Yoga',     fields:[{name:'duration',label:'Duration (min)',type:'number', placeholder:'30',    unit:'min'}] },
+        { id:'swim',   emoji:'🏊', label:'Swim',     fields:[{name:'duration',label:'Duration (min)',type:'number', placeholder:'30',    unit:'min'}] },
+        { id:'sport',  emoji:'⚽', label:'Sport',    fields:[{name:'activity',label:'Activity',      type:'text',   placeholder:'Basketball'},
+                                                              {name:'duration',label:'Duration (min)',type:'number', placeholder:'60',   unit:'min'}] },
+      ],
+      nutrition: [
+        { id:'water',      emoji:'💧', label:'Water',     fields:[{name:'value',label:'Cups',              type:'number',placeholder:'1',    unit:'cups'}] },
+        { id:'meal',       emoji:'🍽️', label:'Meal',      fields:[{name:'food', label:'What did you eat?', type:'text',  placeholder:'Grilled chicken salad'},
+                                                                    {name:'type', label:'Meal type',         type:'select',options:['Breakfast','Lunch','Dinner','Snack']}] },
+        { id:'fruits',     emoji:'🍎', label:'Fruit/Veg', fields:[{name:'value',label:'Servings',          type:'number',placeholder:'2',    unit:'servings'}] },
+        { id:'protein',    emoji:'🥩', label:'Protein',   fields:[{name:'food', label:'Protein source',    type:'text',  placeholder:'Eggs, chicken...'},
+                                                                    {name:'value',label:'Amount (g)',        type:'number',placeholder:'30',   unit:'g'}] },
+        { id:'snack',      emoji:'🥜', label:'Snack',     fields:[{name:'food', label:'What did you eat?', type:'text',  placeholder:'Almonds, yogurt...'}] },
+        { id:'coffee',     emoji:'☕', label:'Coffee',    fields:[{name:'value',label:'Cups',              type:'number',placeholder:'1',    unit:'cups'}] },
+        { id:'greens',     emoji:'🥗', label:'Greens',    fields:[{name:'value',label:'Servings',          type:'number',placeholder:'1',    unit:'servings'}] },
+        { id:'supplement', emoji:'💊', label:'Supplement',fields:[{name:'name', label:'Supplement name',   type:'text',  placeholder:'Vitamin D, Omega-3...'}] },
+      ],
+      mind: [
+        { id:'meditate', emoji:'🧘', label:'Meditate',  fields:[{name:'duration',label:'Duration (min)',              type:'number',placeholder:'10', unit:'min'}] },
+        { id:'journal',  emoji:'📓', label:'Journal',   fields:[{name:'notes',   label:'What did you write about?',   type:'text',  placeholder:'Gratitude, goals...'}] },
+        { id:'sleep',    emoji:'😴', label:'Sleep',     fields:[{name:'value',   label:'Hours slept',                 type:'number',placeholder:'7.5',unit:'hrs'}] },
+        { id:'breathe',  emoji:'🌬️', label:'Breathwork',fields:[{name:'duration',label:'Duration (min)',              type:'number',placeholder:'5',  unit:'min'}] },
+        { id:'read',     emoji:'📚', label:'Reading',   fields:[{name:'duration',label:'Duration (min)',              type:'number',placeholder:'20', unit:'min'},
+                                                                 {name:'notes',  label:'What are you reading?',       type:'text',  placeholder:'Book title...'}] },
+        { id:'gratitude',emoji:'🙏', label:'Gratitude', fields:[{name:'notes',   label:'What are you grateful for?', type:'text',  placeholder:'3 things...'}] },
+        { id:'stretch',  emoji:'🤸', label:'Stretch',   fields:[{name:'duration',label:'Duration (min)',              type:'number',placeholder:'10', unit:'min'}] },
+        { id:'walk_out', emoji:'🌳', label:'Outdoors',  fields:[{name:'duration',label:'Duration (min)',              type:'number',placeholder:'20', unit:'min'}] },
+      ],
+    };
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let currentActivity = null;
+    let todayLogs = [];
+    let challengeGoals = [];
+    let challengeProgress = null;
+    let userProfile = {};
+
+    document.getElementById('today-label').textContent =
+      new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+
+    renderActivityButtons();
+    loadData();
+
+    window.addEventListener('pageshow', (e) => { if (e.persisted) loadData(); });
+
+    // ── Load all data ─────────────────────────────────────────────────────────
+    async function loadData() {
+      const safe = p => p.catch(() => ({}));
+      const [logsRes, yesterdayRes, goalsRes, profileRes, progressRes] = await Promise.all([
+        safe(fetch('/api/logs/today').then(r => r.json())),
+        safe(fetch('/api/logs/yesterday').then(r => r.json())),
+        safe(fetch('/api/challenge-goals').then(r => r.json())),
+        safe(fetch('/api/profile').then(r => r.json())),
+        safe(fetch('/api/challenge-progress').then(r => r.json())),
+      ]);
+
+      todayLogs         = logsRes.logs || [];
+      challengeGoals    = goalsRes.goals || [];
+      challengeProgress = progressRes;
+      userProfile       = profileRes || {};
+
+      if (goalsRes.challengeName) {
+        document.getElementById('challenge-subtitle').textContent = `Active Challenge: ${goalsRes.challengeName}`;
+      }
+
+      applyProfile();
+      renderRecap(yesterdayRes.logs || []);
+      renderAll();
+    }
+
+    // ── Profile ───────────────────────────────────────────────────────────────
+    function applyProfile() {
+      const p = userProfile;
+      const firstName = p.name ? p.name.trim().split(' ')[0] : null;
+
+      // Header greeting
+      const hour = new Date().getHours();
+      const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('greeting').textContent =
+        firstName ? `${timeGreeting}, ${firstName}! 👋` : 'Daily Wellness Tracker';
+
+      // Profile button
+      document.getElementById('profile-btn-label').textContent = firstName || 'Set up profile';
+
+      // Avatar initials
+      const initials = p.name
+        ? p.name.trim().split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+        : '?';
+      document.getElementById('profile-avatar').textContent = initials;
+
+      // Header stats line
+      const statsEl = document.getElementById('profile-stats-header');
+      const stats = [p.age ? `Age ${p.age}` : null, p.height || null, p.weight || null].filter(Boolean);
+      if (stats.length) {
+        statsEl.textContent = stats.join(' · ');
+        statsEl.classList.remove('hidden');
+      } else {
+        statsEl.classList.add('hidden');
+      }
+    }
+
+    function openProfileModal() {
+      document.getElementById('pf-name').value   = userProfile.name   || '';
+      document.getElementById('pf-age').value    = userProfile.age    || '';
+      document.getElementById('pf-height').value = userProfile.height || '';
+      document.getElementById('pf-weight').value = userProfile.weight || '';
+      document.getElementById('profile-modal-overlay').classList.remove('hidden');
+      setTimeout(() => document.getElementById('pf-name').focus(), 50);
+    }
+
+    function closeProfileModal(e) {
+      if (e && e.target !== document.getElementById('profile-modal-overlay')) return;
+      document.getElementById('profile-modal-overlay').classList.add('hidden');
+    }
+
+    async function saveProfile() {
+      const payload = {
+        name:   document.getElementById('pf-name').value.trim(),
+        age:    document.getElementById('pf-age').value.trim(),
+        height: document.getElementById('pf-height').value.trim(),
+        weight: document.getElementById('pf-weight').value.trim(),
+      };
+      await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      userProfile = payload;
+      document.getElementById('profile-modal-overlay').classList.add('hidden');
+      applyProfile();
+      showToast('Profile saved!');
+    }
+
+    // ── Yesterday's recap ─────────────────────────────────────────────────────
+    function renderRecap(yesterdayLogs) {
+      if (!yesterdayLogs.length) return;
+
+      const t = computeTotals(yesterdayLogs);
+      const firstName = userProfile.name ? userProfile.name.trim().split(' ')[0] : null;
+      const hey = firstName ? `Hey ${firstName}!` : 'Hey there!';
+      const messages = [];
+
+      if (t.steps > 0) {
+        const nextTarget = Math.ceil((t.steps + 500) / 1000) * 1000;
+        messages.push({ emoji:'👟', text:`${hey} You took ${t.steps.toLocaleString()} steps yesterday. Can you hit ${nextTarget.toLocaleString()} today?` });
+      }
+      if (t.water > 0) {
+        if (t.water < 8) {
+          const nextTarget = Math.min(t.water + 2, 8);
+          messages.push({ emoji:'💧', text:`You drank ${t.water} cup${t.water !== 1 ? 's' : ''} of water yesterday. Try for ${nextTarget} today!` });
+        } else {
+          messages.push({ emoji:'💧', text:`Amazing — you hit your water goal yesterday (${t.water} cups). Keep it up!` });
+        }
+      }
+      if (t.active > 0) {
+        const nextTarget = Math.min(Math.ceil(t.active / 10) * 10 + 5, 60);
+        messages.push({ emoji:'⏱️', text:`You were active for ${t.active} minutes yesterday. Can you push to ${nextTarget} today?` });
+      }
+      if (t.sleep > 0 && t.sleep < 7) {
+        messages.push({ emoji:'😴', text:`You got ${t.sleep} hrs of sleep last night. Try to get a bit more tonight — your body will thank you!` });
+      } else if (t.sleep >= 8) {
+        messages.push({ emoji:'😴', text:`Great sleep last night — ${t.sleep} hours! A well-rested you is a better you. 🌟` });
+      }
+      if (t.mindful > 0) {
+        messages.push({ emoji:'🧘', text:`Nice — ${t.mindful} minutes of mindfulness yesterday. Consistency is key!` });
+      }
+      if (t.meals === 0 && t.water === 0 && t.steps === 0 && t.active === 0) {
+        messages.push({ emoji:'🌟', text:`${hey} Yesterday was a rest day. Ready to make today count?` });
+      }
+
+      const card = document.getElementById('recap-card');
+      const container = document.getElementById('recap-messages');
+      const shown = messages.slice(0, 3);
+      container.innerHTML = shown.map(m => `
+        <div class="flex items-start gap-2.5">
+          <span class="text-lg shrink-0 mt-0.5">${m.emoji}</span>
+          <p class="text-sm text-amber-900 leading-relaxed">${m.text}</p>
+        </div>
+      `).join('');
+      card.classList.remove('hidden');
+    }
+
+    // ── Activity buttons ──────────────────────────────────────────────────────
+    function renderActivityButtons() {
+      for (const [cat, items] of Object.entries(ACTIVITIES)) {
+        const container = document.getElementById(`tab-${cat}`);
+        items.forEach(act => {
+          const btn = document.createElement('button');
+          btn.className = 'activity-btn flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-slate-100 text-slate-700 text-sm font-medium transition-all cursor-pointer';
+          btn.innerHTML = `<span class="text-2xl">${act.emoji}</span><span class="leading-tight text-center">${act.label}</span>`;
+          btn.onclick = () => openModal(act, cat);
+          container.appendChild(btn);
+        });
+      }
+    }
+
+    function switchTab(tab) {
+      ['physical','nutrition','mind'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+        document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t === tab);
+      });
+    }
+
+    // ── Activity log modal ────────────────────────────────────────────────────
+    function openModal(act, cat) {
+      currentActivity = { ...act, cat };
+      document.getElementById('modal-emoji').textContent = act.emoji;
+      document.getElementById('modal-title').textContent = `Log ${act.label}`;
+      document.getElementById('modal-subtitle').textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+
+      const container = document.getElementById('modal-fields');
+      container.innerHTML = '';
+      act.fields.forEach(f => {
+        const wrap = document.createElement('div');
+        wrap.className = 'space-y-1';
+        const label = document.createElement('label');
+        label.className = 'block text-base font-medium text-slate-700';
+        label.textContent = f.label;
+        wrap.appendChild(label);
+
+        let input;
+        if (f.type === 'select') {
+          input = document.createElement('select');
+          input.className = 'w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white';
+          f.options.forEach(opt => {
+            const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+            input.appendChild(o);
+          });
+        } else {
+          input = document.createElement('input');
+          input.type = f.type;
+          input.placeholder = f.placeholder || '';
+          input.className = 'w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500';
+          if (f.type === 'number') { input.min = '0'; input.step = 'any'; }
+        }
+        input.id = `field-${f.name}`;
+        input.dataset.fieldname = f.name;
+        if (f.unit) input.dataset.unit = f.unit;
+        wrap.appendChild(input);
+        container.appendChild(wrap);
+      });
+
+      document.getElementById('modal-overlay').classList.remove('hidden');
+      setTimeout(() => container.querySelector('input,select')?.focus(), 50);
+    }
+
+    function closeModal(e) {
+      if (e && e.target !== document.getElementById('modal-overlay')) return;
+      document.getElementById('modal-overlay').classList.add('hidden');
+      currentActivity = null;
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        document.getElementById('profile-modal-overlay').classList.add('hidden');
+        for (const t of ['wellness', 'nutrition']) { if (chatOpen[t]) toggleChat(t); }
+      }
+    });
+
+    async function submitLog() {
+      if (!currentActivity) return;
+      const fields = document.querySelectorAll('#modal-fields [data-fieldname]');
+      const data = {};
+      fields.forEach(f => { data[f.dataset.fieldname] = f.value.trim(); });
+
+      const labelParts = [];
+      if (data.food) labelParts.push(data.food);
+      if (data.activity) labelParts.push(data.activity);
+      if (data.name) labelParts.push(data.name);
+      if (data.notes && !data.food) labelParts.push(data.notes);
+      if (data.type) labelParts.push(data.type);
+
+      const primaryField = currentActivity.fields[0];
+      const primaryValue = data[primaryField.name];
+      if (primaryField.type === 'number' && primaryValue && parseFloat(primaryValue) > 0) {
+        labelParts.unshift(`${primaryValue}${primaryField.unit ? ' ' + primaryField.unit : ''}`);
+      }
+
+      const saved = currentActivity;
+      const payload = {
+        type: currentActivity.id, cat: currentActivity.cat,
+        label: `${currentActivity.label}${labelParts.length ? ': ' + labelParts.join(' · ') : ''}`,
+        emoji: currentActivity.emoji, ...data,
+      };
+
+      try {
+        const res = await fetch('/api/log', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        });
+        const { entry } = await res.json();
+        todayLogs.push(entry);
+        document.getElementById('modal-overlay').classList.add('hidden');
+        currentActivity = null;
+        fetch('/api/challenge-progress').then(r => r.json()).then(p => { challengeProgress = p; renderChallengeProgress(); }).catch(() => {});
+        renderAll();
+        showToast(`${saved.emoji} ${saved.label} logged!`);
+      } catch (err) { alert('Failed to save: ' + err.message); }
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function renderAll() { renderTotals(); renderGoals(); renderFeed(); renderChallengeProgress(); }
+
+    function renderTotals() {
+      const t = computeTotals(todayLogs);
+      const grid = document.getElementById('totals-grid');
+      const cards = [
+        { emoji:'💧', label:'Water',       value: t.water   ? `${t.water} cups`        : '—', pct: Math.min(t.water / 8 * 100, 100) },
+        { emoji:'👟', label:'Steps',       value: t.steps   ? t.steps.toLocaleString() : '—', pct: Math.min(t.steps / 10000 * 100, 100) },
+        { emoji:'⏱️', label:'Active',      value: t.active  ? `${t.active} min`        : '—', pct: Math.min(t.active / 30 * 100, 100) },
+        { emoji:'🧘', label:'Mindfulness', value: t.mindful ? `${t.mindful} min`       : '—', pct: Math.min(t.mindful / 10 * 100, 100) },
+        { emoji:'🍽️', label:'Meals',       value: t.meals   ? `${t.meals} logged`      : '—', pct: Math.min(t.meals / 3 * 100, 100) },
+        { emoji:'😴', label:'Sleep',       value: t.sleep   ? `${t.sleep} hrs`         : '—', pct: Math.min(t.sleep / 8 * 100, 100) },
+      ];
+      grid.innerHTML = cards.map(c => `
+        <div class="bg-slate-50 rounded-xl p-3">
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="text-base">${c.emoji}</span>
+            <span class="text-sm font-medium text-slate-500">${c.label}</span>
+          </div>
+          <div class="text-base font-bold text-slate-800 mb-2">${c.value}</div>
+          <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div class="progress-bar-fill h-full rounded-full ${c.pct >= 100 ? 'done' : ''}" style="width:${c.pct}%"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function computeTotals(logs) {
+      return {
+        water:   logs.filter(l=>l.type==='water').reduce((s,l)=>s+(parseFloat(l.value)||0),0),
+        steps:   logs.filter(l=>l.type==='steps').reduce((s,l)=>s+(parseFloat(l.value)||0),0),
+        active:  logs.filter(l=>l.cat==='physical'&&l.type!=='steps').reduce((s,l)=>s+(parseFloat(l.duration||l.value)||0),0),
+        mindful: logs.filter(l=>['meditate','breathe','stretch'].includes(l.type)).reduce((s,l)=>s+(parseFloat(l.duration||l.value)||0),0),
+        meals:   logs.filter(l=>['meal','snack'].includes(l.type)).length,
+        sleep:   logs.filter(l=>l.type==='sleep').reduce((s,l)=>s+(parseFloat(l.value)||0),0),
+      };
+    }
+
+    function renderGoals() {
+      const container = document.getElementById('goals-section');
+      if (!challengeGoals.length) return;
+      const t = computeTotals(todayLogs);
+
+      const rows = challengeGoals.map(g => {
+        const pts = g.points || 5;
+        const { logged, targetNum } = matchGoal(g, t);
+        const pct  = targetNum > 0 ? Math.min(logged / targetNum * 100, 100) : 0;
+        const done = pct >= 100;
+        const habitName = g.habit.replace(/\*+/g, '').trim();
+
+        return `
+          <tr class="border-b border-emerald-100 last:border-0">
+            <td class="py-2.5 pr-3">
+              <p class="text-sm font-medium text-slate-700 leading-snug">${habitName}</p>
+              <p class="text-xs text-slate-400 mt-0.5">${g.target}</p>
+              ${targetNum > 0 ? `<div class="h-1 bg-emerald-100 rounded-full overflow-hidden mt-1.5 w-full">
+                <div class="progress-bar-fill h-full rounded-full ${done ? 'done' : ''}" style="width:${pct}%"></div>
+              </div>` : ''}
+            </td>
+            <td class="py-2.5 text-center whitespace-nowrap">
+              ${done
+                ? `<span class="text-xs font-semibold text-emerald-600">+${pts} pts</span>`
+                : `<span class="text-xs text-slate-300">${pts} pts</span>`}
+            </td>
+          </tr>`;
+      }).join('');
+
+      container.innerHTML = `
+        <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">Today's Habits</p>
+        <table class="w-full">
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    function renderChallengeProgress() {
+      const card = document.getElementById('challenge-progress-card');
+      if (!challengeProgress?.enrolled) { card.classList.add('hidden'); return; }
+      const { challengeName, startDate, endDate, totalDays, daysElapsed, daysRemaining,
+              isActive, isComplete, totalPoints, maxPoints, completionPct } = challengeProgress;
+      card.classList.remove('hidden');
+      document.getElementById('cp-name').textContent = challengeName || 'Wellness Challenge';
+      const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      document.getElementById('cp-dates').textContent = `${fmt(startDate)} – ${fmt(endDate)}`;
+      const statusEl = document.getElementById('cp-status');
+      if (isComplete) {
+        statusEl.textContent = 'Completed';
+        statusEl.className = 'text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 font-medium';
+      } else if (isActive) {
+        statusEl.textContent = 'Active';
+        statusEl.className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium';
+      } else {
+        statusEl.textContent = 'Upcoming';
+        statusEl.className = 'text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium';
+      }
+      document.getElementById('cp-points').textContent     = totalPoints;
+      document.getElementById('cp-max-points').textContent = maxPoints;
+      document.getElementById('cp-day-label').textContent  = `Day ${Math.min(daysElapsed, totalDays)} of ${totalDays}`;
+      document.getElementById('cp-days-left').textContent  = isComplete ? '🎉 Complete!' : `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left`;
+      document.getElementById('cp-day-bar').style.width        = `${Math.min(daysElapsed / totalDays * 100, 100)}%`;
+      document.getElementById('cp-completion-bar').style.width = `${completionPct}%`;
+      document.getElementById('cp-completion-pct').textContent = `${completionPct}%`;
+    }
+
+    function matchGoal(goal, totals) {
+      const h = (goal.habit + ' ' + goal.target).toLowerCase();
+      const targetNum = parseFloat(goal.target.replace(/,/g, '').match(/[\d.]+/)?.[0] || '0');
+      if (/step|10[,.]?000/.test(h))                                                  return { logged: totals.steps,   targetNum };
+      if (/water|cup|glass|hydrat/.test(h))                                           return { logged: totals.water,   targetNum };
+      if (/stretch|meditat|mindful|breath|yoga/.test(h))                              return { logged: totals.mindful, targetNum };
+      if (/sleep|rest/.test(h))                                                       return { logged: totals.sleep,   targetNum };
+      if (/meal|eat|food|healthy/.test(h))                                            return { logged: totals.meals,   targetNum };
+      if (/walk|run|exercise|workout|active|physical|gym|commute|minute|min/.test(h)) return { logged: totals.active,  targetNum };
+      return { logged: 0, targetNum };
+    }
+
+    function renderFeed() {
+      const container = document.getElementById('log-feed');
+      if (!todayLogs.length) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">Nothing logged yet today.</p>';
+        return;
+      }
+      const sorted = [...todayLogs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      container.innerHTML = sorted.map(entry => {
+        const time = new Date(entry.timestamp).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+        return `
+          <div class="log-entry flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
+            <span class="text-xl mt-0.5 shrink-0">${entry.emoji || '📌'}</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-base font-medium text-slate-800 leading-snug">${entry.label}</p>
+              <p class="text-sm text-slate-400 mt-0.5">${time}</p>
+            </div>
+            <button onclick="deleteEntry('${entry.id}')" class="shrink-0 text-slate-300 hover:text-red-400 text-lg leading-none transition-colors" title="Remove">×</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function deleteEntry(id) {
+      await fetch(`/api/log/${id}`, { method: 'DELETE' });
+      todayLogs = todayLogs.filter(l => l.id !== id);
+      renderAll();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+    }
+
+    // ── AI Chatbots (wellness + nutrition) ───────────────────────────────────
+    const CHAT_ICONS = { wellness: '🧠', nutrition: '🥗' };
+    const chatHistory = { wellness: [], nutrition: [] };
+    const chatOpen = { wellness: false, nutrition: false };
+    let chatStreaming = false;
+
+    function toggleChat(type) {
+      const wasOpen = chatOpen[type];
+      for (const t of ['wellness', 'nutrition']) {
+        if (chatOpen[t]) {
+          chatOpen[t] = false;
+          const p = document.getElementById(`chat-panel-${t}`);
+          p.classList.add('hidden');
+          p.classList.remove('chat-open');
+        }
+      }
+      if (!wasOpen) {
+        chatOpen[type] = true;
+        const panel = document.getElementById(`chat-panel-${type}`);
+        panel.classList.remove('hidden');
+        void panel.offsetWidth;
+        panel.classList.add('chat-open');
+        setTimeout(() => document.getElementById(`chat-input-${type}`).focus(), 80);
+      }
+    }
+
+    function askSample(btn, type) {
+      const q = btn.dataset.q || btn.textContent.trim();
+      document.getElementById(`chat-input-${type}`).value = q;
+      document.getElementById(`chat-samples-${type}`).classList.add('hidden');
+      sendChat(type);
+    }
+
+    async function sendChat(type) {
+      if (chatStreaming) return;
+      const input = document.getElementById(`chat-input-${type}`);
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      document.getElementById(`chat-samples-${type}`).classList.add('hidden');
+      chatHistory[type].push({ role: 'user', content: text });
+      appendUserBubble(type, text);
+
+      const typingId = `t-${Date.now()}`;
+      appendTypingBubble(type, typingId);
+
+      chatStreaming = true;
+      document.getElementById(`chat-send-btn-${type}`).disabled = true;
+
+      let aiText = '';
+      const aiId = `a-${Date.now()}`;
+      let firstChunk = true;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: chatHistory[type], chatType: type }),
+        });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        outer: while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          for (const line of decoder.decode(value).split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            const payload = line.slice(6).trim();
+            if (payload === '[DONE]') break outer;
+            try {
+              const { text: chunk, error } = JSON.parse(payload);
+              if (error) throw new Error(error);
+              if (chunk) {
+                if (firstChunk) {
+                  document.getElementById(typingId)?.remove();
+                  appendAiBubble(type, aiId);
+                  firstChunk = false;
+                }
+                aiText += chunk;
+                const el = document.getElementById(aiId);
+                if (el) el.textContent = aiText;
+                scrollChat(type);
+              }
+            } catch { /* partial chunk */ }
+          }
+        }
+        chatHistory[type].push({ role: 'assistant', content: aiText });
+      } catch {
+        document.getElementById(typingId)?.remove();
+        const errId = `err-${Date.now()}`;
+        appendAiBubble(type, errId);
+        document.getElementById(errId).textContent = "I'm having trouble connecting right now. Please try again.";
+      }
+
+      chatStreaming = false;
+      document.getElementById(`chat-send-btn-${type}`).disabled = false;
+      input.focus();
+    }
+
+    function appendUserBubble(type, text) {
+      const msgs = document.getElementById(`chat-messages-${type}`);
+      const div = document.createElement('div');
+      div.className = 'flex justify-end';
+      const bubble = document.createElement('div');
+      bubble.className = 'bg-emerald-600 text-white rounded-2xl rounded-tr-sm px-3 py-2.5 text-xs leading-relaxed max-w-[85%] whitespace-pre-line';
+      bubble.textContent = text;
+      div.appendChild(bubble);
+      msgs.appendChild(div);
+      scrollChat(type);
+    }
+
+    function appendAiBubble(type, id) {
+      const msgs = document.getElementById(`chat-messages-${type}`);
+      const icon = CHAT_ICONS[type];
+      const div = document.createElement('div');
+      div.className = 'flex gap-2';
+      div.innerHTML = `
+        <span class="shrink-0 w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-sm mt-0.5">${icon}</span>
+        <div class="bg-slate-50 rounded-2xl rounded-tl-sm px-3 py-2.5 max-w-[85%]">
+          <span id="${id}" class="text-xs text-slate-700 leading-relaxed whitespace-pre-line"></span>
+        </div>`;
+      msgs.appendChild(div);
+      scrollChat(type);
+    }
+
+    function appendTypingBubble(type, id) {
+      const msgs = document.getElementById(`chat-messages-${type}`);
+      const icon = CHAT_ICONS[type];
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = 'flex gap-2';
+      div.innerHTML = `
+        <span class="shrink-0 w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-sm mt-0.5">${icon}</span>
+        <div class="bg-slate-50 rounded-xl px-3 py-2.5">
+          <div class="flex gap-1 items-center h-4">
+            <span class="dot w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
+            <span class="dot w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
+            <span class="dot w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
+          </div>
+        </div>`;
+      msgs.appendChild(div);
+      scrollChat(type);
+    }
+
+    function scrollChat(type) {
+      const msgs = document.getElementById(`chat-messages-${type}`);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  </script>
+
+  <script>
+    window.zESettings = {
+      webWidget: {
+        color: { theme: '#059669', launcher: '#059669', launcherText: '#ffffff' },
+        offset: { horizontal: '16px', vertical: '16px' }
+      }
+    };
+  </script>
+  <!-- Start of selfemployed-63869 Zendesk Widget script -->
+  <script id="ze-snippet" src="https://static.zdassets.com/ekr/snippet.js?key=4cab4992-82e8-4a14-bf34-813e3d4e2aa3"> </script>
+  <!-- End of selfemployed-63869 Zendesk Widget script -->
+  <script>
+    zE(function() {
+      zE('webWidget', 'hide');
+      zE('webWidget:on', 'close', function() { zE('webWidget', 'hide'); });
+    });
+    function toggleZendesk() {
+      zE('webWidget', 'show');
+      zE('webWidget', 'open');
+    }
+  </script>
+</body>
+</html>

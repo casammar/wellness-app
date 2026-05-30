@@ -1,0 +1,17 @@
+{
+  "name": "wellness-challenge-builder",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "stop": "pkill -f 'node server.js'",
+    "restart": "npm stop; npm start",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0",
+    "openai": "^4.0.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0"
+  }
+}

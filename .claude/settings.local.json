@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s -N -X POST http://localhost:3000/api/generate -H 'Content-Type: application/json' -d '{\"teamSize\":\"25\",\"duration\":\"4 weeks\",\"wellnessFocus\":\"Physical Fitness, Mental Health\",\"engagementGoal\":\"Build team camaraderie\"}')",
+      "Bash(find /private/tmp/claude-501/bundled-skills -name \"models.md\" 2>/dev/null | head -3)",
+      "Read(//private/tmp/claude-501/bundled-skills/**)",
+      "Bash(npm install *)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(curl -s http://localhost:3000/api/config)",
+      "Bash(curl -s http://localhost:3000/api/challenge-goals)",
+      "Bash(curl -s http://localhost:3000/tracker.html)",
+      "WebFetch(domain:huskwellness.com)",
+      "Bash(curl -s https://huskwellness.com/)",
+      "Bash(curl -s \"https://huskwellness.com/wp-content/uploads/elementor/css/post-9178.css\")",
+      "Bash(curl -s \"https://huskwellness.com/wp-content/uploads/elementor/css/custom-frontend.min.css\")",
+      "Bash(curl -s http://localhost:3000/api/profile)",
+      "Bash(curl -s http://localhost:3000/api/logs/yesterday)",
+      "Bash(node /Users/chris/Code/wellness-app/server.js)",
+      "Bash(curl -s -X POST http://localhost:3000/api/chat -H \"Content-Type: application/json\" -d '{\"messages\":[{\"role\":\"user\",\"content\":\"Hi\"}]}')",
+      "Bash(curl -s http://localhost:3000/api/challenge-progress)",
+      "Bash(npm run *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/save-plan -H 'Content-Type: application/json' -d '{\"planText\": __CMDSUB_OUTPUT__')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('enrolled:', d.get\\('enrolled'\\)\\); print\\('challengeName:', d.get\\('challengeName'\\)\\); print\\('startDate:', d.get\\('startDate'\\)\\); print\\('endDate:', d.get\\('endDate'\\)\\); print\\('goals count:', len\\(d.get\\('goalProgress', []\\)\\)\\)\")",
+      "Bash(unzip -l \"/Users/chris/Downloads/google-workspace-cli-installer-guide.zip\")",
+      "Bash(brew --version)",
+      "Bash(gcloud --version)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:3000/api/save-plan -H 'Content-Type: application/json' -d '{\"planText\":\"## 🏆 Challenge Name\\\\n**Test Plan** — *tagline*\\\\n\\\\n## ✅ Challenge Tracker\\\\n| # | Habit | Daily Goal | Points |\\\\n|---|-------|------------|--------|\\\\n| 1 | Steps | 8000 steps | 20 pts |\\\\n| 2 | Fitness | 30 min of activity | 15 pts |\\\\n| 3 | Hydration | 8 glasses of water | 10 pts |\\\\n| 4 | Sleep | 7 hrs of sleep | 15 pts |\\\\n| 5 | Calories | Log 3 meals | 10 pts |\",\"startDate\":\"2026-05-28\",\"duration\":\"3 days\"}')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('challengeName:', d.get\\('challengeName'\\)\\); print\\('goals:', [\\(g['habit'], g['target']\\) for g in d.get\\('goals',[]\\)]\\)\")",
+      "Bash(npm stop *)",
+      "Bash(curl -s http://localhost:3000/api/challenges)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

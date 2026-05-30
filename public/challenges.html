@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Challenge History</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .animated-gradient {
+      background: linear-gradient(-45deg, #059669, #0d9488, #10b981, #0891b2);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+    }
+
+    .challenge-card.active {
+      border-color: #059669;
+      background-color: #f0fdf4;
+    }
+
+    #plan-body h2 {
+      font-size: 1.1rem; font-weight: 700; color: #065f46;
+      margin-top: 1.5rem; margin-bottom: 0.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    #plan-body h3 {
+      font-size: 0.95rem; font-weight: 600; color: #0f766e;
+      margin-top: 1rem; margin-bottom: 0.25rem;
+    }
+    #plan-body ul { list-style-type: disc; padding-left: 1.4rem; margin: 0.4rem 0; }
+    #plan-body ol { list-style-type: decimal; padding-left: 1.4rem; margin: 0.4rem 0; }
+    #plan-body li { margin: 0.2rem 0; color: #374151; line-height: 1.55; }
+    #plan-body p  { color: #4b5563; margin: 0.5rem 0; line-height: 1.65; }
+    #plan-body strong { color: #1f2937; font-weight: 600; }
+    #plan-body hr { border-color: #e5e7eb; margin: 1rem 0; }
+    #plan-body blockquote {
+      border-left: 3px solid #10b981; padding-left: 1rem;
+      color: #6b7280; font-style: italic;
+    }
+    #plan-body table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.82rem; margin: 0.75rem 0;
+    }
+    #plan-body th {
+      background: #f0fdf4; color: #065f46; font-weight: 600;
+      padding: 0.5rem 0.75rem; text-align: left; border: 1px solid #d1fae5;
+    }
+    #plan-body td {
+      padding: 0.45rem 0.75rem; border: 1px solid #e5e7eb;
+      color: #374151; vertical-align: top;
+    }
+    #plan-body tr:nth-child(even) td { background: #f9fafb; }
+
+    /* Mobile detail overlay */
+    @media (max-width: 1023px) {
+      #detail-panel { display: none; }
+      #detail-panel.mobile-open {
+        display: flex;
+        position: fixed; inset: 0; z-index: 40;
+        flex-direction: column;
+        background: #fff;
+        overflow-y: auto;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <!-- Header -->
+  <header class="animated-gradient text-white py-12 px-6 relative">
+    <div class="absolute top-4 left-6 flex items-center gap-4 text-sm">
+      <a href="/" class="text-white/60 hover:text-white transition-colors">← Participant View</a>
+      <a href="/challenge-builder.html" class="text-white/60 hover:text-white transition-colors">Challenge Builder →</a>
+    </div>
+    <div class="max-w-7xl mx-auto text-center pt-4">
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3">Challenge History</h1>
+      <p class="text-emerald-100 text-lg max-w-xl mx-auto leading-relaxed">
+        Every plan you've generated, saved and ready to reuse.
+      </p>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div class="lg:grid lg:grid-cols-[380px_1fr] lg:gap-6 lg:items-start">
+
+      <!-- List panel -->
+      <div class="space-y-3 lg:sticky lg:top-8">
+        <div id="list-empty" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center">
+          <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">📭</div>
+          <h3 class="text-base font-semibold text-slate-700 mb-2">No challenges yet</h3>
+          <p class="text-sm text-slate-400 mb-5 leading-relaxed">
+            Generate a plan in the Challenge Builder and it will appear here automatically.
+          </p>
+          <a href="/challenge-builder.html"
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all">
+            ✨ Build a Challenge
+          </a>
+        </div>
+        <div id="challenge-list" class="space-y-3 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-1"></div>
+      </div>
+
+      <!-- Detail panel -->
+      <div id="detail-panel" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+
+        <!-- Empty state -->
+        <div id="detail-empty" class="p-16 text-center">
+          <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">📋</div>
+          <h3 class="text-base font-semibold text-slate-700 mb-2">Select a challenge</h3>
+          <p class="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
+            Click any challenge on the left to view the full plan and reactivate it.
+          </p>
+        </div>
+
+        <!-- Plan detail (hidden until a challenge is selected) -->
+        <div id="detail-content" class="hidden flex flex-col" style="max-height: calc(100vh - 180px);">
+
+          <!-- Back button (mobile only) -->
+          <div class="lg:hidden px-5 py-3 border-b border-slate-100">
+            <button onclick="closeMobileDetail()" class="flex items-center gap-1.5 text-sm text-emerald-600 font-medium">
+              ← Back to list
+            </button>
+          </div>
+
+          <!-- Detail header -->
+          <div class="animated-gradient px-6 py-5 shrink-0">
+            <p class="text-emerald-100 text-xs font-medium mb-1 uppercase tracking-wider">Saved Plan</p>
+            <h2 id="detail-name" class="text-white font-bold text-lg leading-snug"></h2>
+            <p id="detail-meta" class="text-emerald-100/80 text-xs mt-1.5"></p>
+          </div>
+
+          <!-- Scrollable plan body -->
+          <div class="flex-1 overflow-y-auto p-6">
+            <div id="plan-body"></div>
+          </div>
+
+          <!-- Activate footer -->
+          <div class="shrink-0 border-t border-slate-100 bg-slate-50 px-6 py-4 flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <label class="text-xs font-medium text-slate-500 whitespace-nowrap">Start date</label>
+              <input type="date" id="activate-date"
+                class="flex-1 min-w-0 px-3 py-1.5 border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer" />
+            </div>
+            <button id="activate-btn" onclick="activateSelected()"
+              class="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm">
+              <span id="activate-icon">🚀</span>
+              <span id="activate-label">Activate Challenge</span>
+            </button>
+            <button id="delete-btn" onclick="deleteSelected()"
+              class="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 text-sm font-medium rounded-xl border border-slate-200 hover:border-red-200 transition-all">
+              🗑 Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast"
+    class="fixed bottom-6 right-6 bg-slate-800 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300">
+    <span id="toast-msg"></span>
+  </div>
+
+  <script>
+    marked.setOptions({ breaks: true, gfm: true });
+
+    let challenges = [];
+    let selectedId = null;
+
+    loadChallenges();
+
+    async function loadChallenges() {
+      try {
+        const res = await fetch('/api/challenges');
+        const data = await res.json();
+        challenges = data.challenges || [];
+        renderList();
+      } catch {
+        document.getElementById('list-empty').classList.remove('hidden');
+      }
+    }
+
+    function renderList() {
+      const list    = document.getElementById('challenge-list');
+      const empty   = document.getElementById('list-empty');
+      if (!challenges.length) {
+        empty.classList.remove('hidden');
+        list.innerHTML = '';
+        return;
+      }
+      empty.classList.add('hidden');
+      list.innerHTML = challenges.map(c => {
+        const date = new Date(c.createdAt).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+        });
+        const time = new Date(c.createdAt).toLocaleTimeString('en-US', {
+          hour: 'numeric', minute: '2-digit',
+        });
+        const tags = [c.wellnessFocus, c.engagementGoal].filter(Boolean)
+          .flatMap(s => s.split(',').map(t => t.trim())).slice(0, 3);
+        return `
+          <div class="challenge-card bg-white rounded-2xl shadow-sm border-2 border-slate-100 p-4 cursor-pointer hover:border-emerald-300 hover:shadow-md transition-all ${c.id === selectedId ? 'active' : ''}"
+            onclick="selectChallenge('${c.id}')">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-slate-800 leading-snug truncate">${c.challengeName}</p>
+                <p class="text-xs text-slate-400 mt-0.5">${date} at ${time}</p>
+              </div>
+              <span class="shrink-0 text-xs font-medium px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 whitespace-nowrap">${c.duration}</span>
+            </div>
+            ${tags.length ? `
+            <div class="flex flex-wrap gap-1.5 mt-2.5">
+              ${tags.map(t => `<span class="text-[10px] px-2 py-0.5 bg-slate-50 text-slate-500 rounded-full border border-slate-100">${t}</span>`).join('')}
+            </div>` : ''}
+            ${c.teamSize ? `<p class="text-[11px] text-slate-400 mt-1.5">👥 ${c.teamSize} people</p>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    async function selectChallenge(id) {
+      selectedId = id;
+      renderList();
+
+      const res = await fetch(`/api/challenges/${id}`);
+      const c = await res.json();
+
+      document.getElementById('detail-name').textContent = c.challengeName;
+
+      const parts = [];
+      if (c.teamSize)       parts.push(`👥 ${c.teamSize} people`);
+      if (c.duration)       parts.push(`⏱ ${c.duration}`);
+      if (c.wellnessFocus)  parts.push(c.wellnessFocus);
+      if (c.startDate)      parts.push(`Starts ${c.startDate}`);
+      document.getElementById('detail-meta').textContent = parts.join('  ·  ');
+
+      document.getElementById('plan-body').innerHTML = marked.parse(c.planText);
+      document.getElementById('activate-date').value = new Date().toISOString().slice(0, 10);
+
+      const icon  = document.getElementById('activate-icon');
+      const label = document.getElementById('activate-label');
+      icon.textContent  = '🚀';
+      label.textContent = 'Activate Challenge';
+      document.getElementById('activate-btn').disabled = false;
+
+      document.getElementById('detail-empty').classList.add('hidden');
+      document.getElementById('detail-content').classList.remove('hidden');
+
+      // Mobile: show as overlay
+      const panel = document.getElementById('detail-panel');
+      panel.classList.add('mobile-open');
+    }
+
+    function closeMobileDetail() {
+      document.getElementById('detail-panel').classList.remove('mobile-open');
+    }
+
+    async function activateSelected() {
+      if (!selectedId) return;
+      const startDate = document.getElementById('activate-date').value;
+      const btn   = document.getElementById('activate-btn');
+      const icon  = document.getElementById('activate-icon');
+      const label = document.getElementById('activate-label');
+      btn.disabled = true;
+      icon.textContent  = '⏳';
+      label.textContent = 'Activating…';
+      try {
+        await fetch(`/api/challenges/${selectedId}/activate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startDate }),
+        });
+        icon.textContent  = '✅';
+        label.textContent = 'Activated!';
+        showToast('✅ Challenge activated! Head to Participant View to track it.');
+      } catch {
+        btn.disabled = false;
+        icon.textContent  = '🚀';
+        label.textContent = 'Activate Challenge';
+        showToast('⚠️ Failed to activate. Please try again.');
+      }
+    }
+
+    async function deleteSelected() {
+      if (!selectedId) return;
+      if (!confirm('Delete this challenge? This cannot be undone.')) return;
+      await fetch(`/api/challenges/${selectedId}`, { method: 'DELETE' });
+      challenges = challenges.filter(c => c.id !== selectedId);
+      selectedId = null;
+      renderList();
+      document.getElementById('detail-empty').classList.remove('hidden');
+      document.getElementById('detail-content').classList.add('hidden');
+      document.getElementById('detail-panel').classList.remove('mobile-open');
+      showToast('🗑 Challenge deleted.');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+  </script>
+</body>
+</html>

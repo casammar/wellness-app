@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wellness Program Advisor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .animated-gradient {
+      background: linear-gradient(-45deg, #059669, #0d9488, #10b981, #0891b2);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.25s ease; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="animated-gradient text-white py-10 px-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="flex items-center gap-4 mb-5">
+        <a href="/challenge-builder.html" class="inline-flex items-center gap-1 text-emerald-200 hover:text-white text-sm transition-colors">← Challenge Builder</a>
+        <a href="/" class="inline-flex items-center gap-1 text-emerald-200 hover:text-white text-sm transition-colors">📋 Tracker</a>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center text-3xl shrink-0">🎯</div>
+        <div>
+          <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Wellness Program Advisor</h1>
+          <p class="text-emerald-100 text-base opacity-80 mt-1">Tell us your goals — we'll match you with the right programs</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ─────────────────────────────────────────────────────────────── -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Search card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+      <div class="flex gap-3">
+        <input id="advisor-input" type="text"
+          placeholder="e.g. I want to lose weight and manage stress…"
+          class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+          onkeydown="if(event.key==='Enter')findPrograms()" />
+        <button id="advisor-btn" onclick="findPrograms()"
+          class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold rounded-xl transition-all disabled:opacity-50 whitespace-nowrap">
+          Find Programs →
+        </button>
+      </div>
+
+      <!-- Quick-pick chips -->
+      <div class="flex flex-wrap gap-2 mt-4">
+        <p class="w-full text-xs font-medium text-slate-400 uppercase tracking-wide mb-0.5">Quick picks:</p>
+        <button onclick="setAdvisorGoal(this)" class="text-sm px-3.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">⚖️ Lose weight</button>
+        <button onclick="setAdvisorGoal(this)" class="text-sm px-3.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">😰 Manage stress & anxiety</button>
+        <button onclick="setAdvisorGoal(this)" class="text-sm px-3.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">😴 Sleep better</button>
+        <button onclick="setAdvisorGoal(this)" class="text-sm px-3.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">💪 Build strength</button>
+        <button onclick="setAdvisorGoal(this)" class="text-sm px-3.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">⚡ Boost energy & focus</button>
+        <button onclick="setAdvisorGoal(this)" class="text-sm px-3.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">🤝 Improve team wellbeing</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="advisor-results" class="hidden"></div>
+
+    <!-- All programs browse section -->
+    <div class="mt-8">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Browse All Programs</h2>
+      <div id="all-programs" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+  </main>
+
+  <script>
+    // ── Marketplace data (mirrors server.js MARKETPLACE) ─────────────────────
+    const MARKETPLACE_DATA = [
+      { id: 'weight-loss',    emoji: '⚖️',  title: 'Weight Loss Challenge',        description: 'A 30-day program combining daily movement, portion awareness, and mindful eating habits.',           tags: ['Fitness', 'Nutrition'],           duration: '30 days' },
+      { id: 'stress-relief',  emoji: '🌿',  title: 'Stress Relief & Recovery',     description: 'Daily mindfulness sessions, breathing techniques, and science-backed stress-reduction habits.',    tags: ['Mental Health', 'Mindfulness'],   duration: '3 weeks' },
+      { id: 'sleep-boost',    emoji: '😴',  title: 'Sleep Optimization Program',   description: 'Build a powerful sleep routine with proven wind-down rituals and sleep hygiene practices.',       tags: ['Sleep', 'Recovery'],              duration: '2 weeks' },
+      { id: 'strength-fit',   emoji: '💪',  title: 'Strength & Endurance Builder', description: 'Progressive workout challenges designed to build strength, stamina, and athletic performance.',    tags: ['Fitness', 'Strength'],            duration: '6 weeks' },
+      { id: 'mindfulness',    emoji: '🧘',  title: 'Mindfulness & Mental Clarity', description: 'Daily meditation, journaling, and mindfulness practices for focus and emotional balance.',         tags: ['Mental Health', 'Mindfulness'],   duration: '30 days' },
+      { id: 'nutrition-reset',emoji: '🥗',  title: 'Nutrition Reset',              description: 'Rebuild your relationship with food — clean eating habits, meal planning, and nutrition basics.',  tags: ['Nutrition', 'Health'],            duration: '4 weeks' },
+      { id: 'steps-challenge',emoji: '👟',  title: '10K Steps Daily Challenge',    description: 'A fun daily steps challenge with team leaderboards and weekly milestone rewards.',               tags: ['Fitness', 'Movement'],            duration: '30 days' },
+      { id: 'team-connect',   emoji: '🤝',  title: 'Team Connection Challenge',    description: 'Wellness activities to strengthen team bonds, improve communication, and boost morale.',          tags: ['Social', 'Team'],                 duration: '2 weeks' },
+      { id: 'energy-boost',   emoji: '⚡',  title: 'All-Day Energy Program',       description: 'Optimize energy through better nutrition timing, movement breaks, and sleep hygiene habits.',     tags: ['Energy', 'Nutrition'],            duration: '3 weeks' },
+      { id: 'heart-health',   emoji: '❤️', title: 'Heart Health Challenge',       description: 'Cardio habits, heart-healthy nutrition, and stress reduction for cardiovascular wellness.',        tags: ['Fitness', 'Heart Health'],        duration: '4 weeks' },
+    ];
+
+    const TAG_COLORS = {
+      'Fitness':      'bg-blue-50 text-blue-700',
+      'Nutrition':    'bg-green-50 text-green-700',
+      'Mental Health':'bg-purple-50 text-purple-700',
+      'Mindfulness':  'bg-indigo-50 text-indigo-700',
+      'Sleep':        'bg-slate-100 text-slate-600',
+      'Recovery':     'bg-amber-50 text-amber-700',
+      'Strength':     'bg-orange-50 text-orange-700',
+      'Social':       'bg-pink-50 text-pink-700',
+      'Team':         'bg-rose-50 text-rose-700',
+      'Energy':       'bg-yellow-50 text-yellow-700',
+      'Heart Health': 'bg-red-50 text-red-700',
+      'Movement':     'bg-cyan-50 text-cyan-700',
+      'Health':       'bg-teal-50 text-teal-700',
+    };
+
+    // ── Preset results for each quick-pick chip ───────────────────────────────
+    const CHIP_PRESETS = {
+      '⚖️ Lose weight': {
+        intro: "Losing weight sustainably means combining daily movement, smarter nutrition, and consistent habits. Here are your best-matched programs.",
+        ids: ['weight-loss', 'nutrition-reset', 'steps-challenge'],
+        reasons: {
+          'weight-loss':     "A structured 30-day framework with daily movement and portion awareness — exactly the combination that builds lasting results.",
+          'nutrition-reset': "Nutrition drives the majority of weight loss. This program rebuilds your eating habits from the ground up.",
+          'steps-challenge': "Adding 10,000 daily steps creates a natural calorie deficit without any gym — and the team leaderboard keeps you accountable.",
+        }
+      },
+      '😰 Manage stress & anxiety': {
+        intro: "Managing stress is about building daily rituals that reset your nervous system. These programs layer beautifully together.",
+        ids: ['stress-relief', 'mindfulness', 'sleep-boost'],
+        reasons: {
+          'stress-relief': "Science-backed breathing and relaxation techniques that target the root physiological stress response.",
+          'mindfulness':   "Daily meditation and journaling create the mental space to respond — not react — to life's stressors.",
+          'sleep-boost':   "Chronic stress disrupts sleep, and poor sleep amplifies anxiety. This program breaks that cycle.",
+        }
+      },
+      '😴 Sleep better': {
+        intro: "Better sleep starts with consistent pre-bed rituals and a calmer mind. These programs address the full picture.",
+        ids: ['sleep-boost', 'stress-relief', 'mindfulness'],
+        reasons: {
+          'sleep-boost':   "Proven wind-down rituals and sleep hygiene practices that signal to your brain it's time to rest.",
+          'stress-relief': "Racing thoughts are the #1 sleep disruptor. These stress-reduction techniques quiet the mind before bed.",
+          'mindfulness':   "A regular mindfulness practice lowers cortisol levels, making it measurably easier to fall and stay asleep.",
+        }
+      },
+      '💪 Build strength': {
+        intro: "Building real strength means progressive challenge, consistent movement, and fueling right. Here's your complete stack.",
+        ids: ['strength-fit', 'steps-challenge', 'nutrition-reset'],
+        reasons: {
+          'strength-fit':    "Progressive workout challenges that safely increase load and intensity — the scientific foundation of strength development.",
+          'steps-challenge': "Active recovery days with daily walking keep blood flowing and muscles recovering between sessions.",
+          'nutrition-reset': "Strength gains require adequate protein and macro balance — this reset ensures your food supports your training.",
+        }
+      },
+      '⚡ Boost energy & focus': {
+        intro: "Sustained energy and sharp focus come from optimizing three pillars: sleep, nutrition, and movement rhythms.",
+        ids: ['energy-boost', 'sleep-boost', 'nutrition-reset'],
+        reasons: {
+          'energy-boost':    "Optimized nutrition timing and strategic movement breaks prevent the afternoon slump most people accept as inevitable.",
+          'sleep-boost':     "Deep, quality sleep is the single biggest lever for energy and mental clarity — nothing else comes close.",
+          'nutrition-reset': "Blood sugar stability through balanced eating eliminates energy crashes and keeps you focused all day.",
+        }
+      },
+      '🤝 Improve team wellbeing': {
+        intro: "Team wellbeing is a multiplier — when people feel connected and energized, collaboration and morale follow.",
+        ids: ['team-connect', 'mindfulness', 'energy-boost'],
+        reasons: {
+          'team-connect': "Shared wellness activities build psychological safety and improve communication in ways no meeting ever could.",
+          'mindfulness':  "Individual mindfulness practice makes for more patient, focused, and empathetic teammates across the whole team.",
+          'energy-boost': "A more energized team is a more engaged team — lifting the group's daily performance baseline together.",
+        }
+      },
+    };
+
+    // ── Chip click: show preset instantly ────────────────────────────────────
+    function setAdvisorGoal(btn) {
+      const label = btn.textContent.trim();
+      document.getElementById('advisor-input').value = label;
+      const preset = CHIP_PRESETS[label];
+      if (preset) {
+        const matches = preset.ids
+          .map(id => ({ ...MARKETPLACE_DATA.find(p => p.id === id), reason: preset.reasons[id] }))
+          .filter(m => m.id);
+        const resultsEl = document.getElementById('advisor-results');
+        resultsEl.classList.remove('hidden');
+        renderAdvisorResults({ intro: preset.intro, matches });
+        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      findPrograms();
+    }
+
+    // ── Free-text search: call the API ────────────────────────────────────────
+    async function findPrograms() {
+      const input = document.getElementById('advisor-input');
+      const goal = input.value.trim();
+      if (!goal) { input.focus(); return; }
+
+      const btn = document.getElementById('advisor-btn');
+      const resultsEl = document.getElementById('advisor-results');
+
+      btn.disabled = true;
+      btn.textContent = 'Analyzing…';
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = `
+        <div class="flex items-center gap-3 py-4 text-slate-400">
+          <div class="flex gap-1">
+            <span class="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style="animation-delay:0ms"></span>
+            <span class="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style="animation-delay:150ms"></span>
+            <span class="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style="animation-delay:300ms"></span>
+          </div>
+          <span class="text-sm">Matching your goals to programs…</span>
+        </div>`;
+
+      try {
+        const res = await fetch('/api/marketplace-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderAdvisorResults(data);
+        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        resultsEl.innerHTML = `<p class="text-red-500 text-sm py-2">⚠️ ${err.message}. Please try again.</p>`;
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Find Programs →';
+    }
+
+    // ── Render matched results ────────────────────────────────────────────────
+    function renderAdvisorResults(data) {
+      const resultsEl = document.getElementById('advisor-results');
+      resultsEl.className = 'fade-up mb-8';
+      resultsEl.innerHTML = `
+        <div class="flex items-start gap-3 mb-5 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+          <span class="text-xl shrink-0 mt-0.5">✨</span>
+          <p class="text-base text-emerald-800 leading-relaxed">${data.intro}</p>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${data.matches.map(m => programCard(m, true)).join('')}
+        </div>`;
+    }
+
+    function programCard(m, highlighted = false) {
+      const tagHtml = (m.tags || []).map(tag =>
+        `<span class="text-xs px-2 py-0.5 rounded-full font-medium ${TAG_COLORS[tag] || 'bg-slate-100 text-slate-600'}">${tag}</span>`
+      ).join('');
+      const reasonHtml = highlighted && m.reason ? `
+        <p class="text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 mb-3 leading-relaxed border border-emerald-100">
+          <span class="font-semibold">Why this fits:</span> ${m.reason}
+        </p>` : '';
+      return `
+        <div class="border ${highlighted ? 'border-emerald-200 shadow-sm' : 'border-slate-100'} rounded-xl p-4 hover:border-emerald-200 hover:shadow-sm transition-all bg-white">
+          <div class="flex items-start gap-3 mb-3">
+            <span class="text-3xl shrink-0 leading-none">${m.emoji}</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-base font-semibold text-slate-800 leading-tight">${m.title}</p>
+              <p class="text-xs text-slate-400 mt-0.5">⏱ ${m.duration}</p>
+            </div>
+          </div>
+          <p class="text-sm text-slate-500 leading-relaxed mb-3">${m.description}</p>
+          ${reasonHtml}
+          <div class="flex items-center justify-between gap-2 mt-auto">
+            <div class="flex flex-wrap gap-1.5">${tagHtml}</div>
+            <button class="shrink-0 text-sm px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors">
+              Start →
+            </button>
+          </div>
+        </div>`;
+    }
+
+    // ── Render all programs grid ──────────────────────────────────────────────
+    function renderAllPrograms() {
+      document.getElementById('all-programs').innerHTML =
+        MARKETPLACE_DATA.map(p => programCard(p, false)).join('');
+    }
+
+    renderAllPrograms();
+  </script>
+</body>
+</html>
