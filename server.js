@@ -20,16 +20,17 @@ const lmstudio = new OpenAI({
   apiKey: 'lm-studio',
 });
 
-const DATA_DIR = join(__dirname, 'data');
-if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+const DATA_DIR        = join(__dirname, 'data');
+const PLAN_FILE       = join(DATA_DIR, 'current-plan.json');
+const LOGS_FILE       = join(DATA_DIR, 'logs.json');
+const PROFILE_FILE    = join(DATA_DIR, 'profile.json');
+const CHALLENGES_FILE = join(DATA_DIR, 'challenges.json');
+
+if (!existsSync(DATA_DIR))        mkdirSync(DATA_DIR, { recursive: true });
 if (!existsSync(PLAN_FILE))       writeFileSync(PLAN_FILE,       'null');
 if (!existsSync(LOGS_FILE))       writeFileSync(LOGS_FILE,       '[]');
 if (!existsSync(PROFILE_FILE))    writeFileSync(PROFILE_FILE,    '{}');
 if (!existsSync(CHALLENGES_FILE)) writeFileSync(CHALLENGES_FILE, '[]');
-const PLAN_FILE        = join(DATA_DIR, 'current-plan.json');
-const LOGS_FILE        = join(DATA_DIR, 'logs.json');
-const PROFILE_FILE     = join(DATA_DIR, 'profile.json');
-const CHALLENGES_FILE  = join(DATA_DIR, 'challenges.json');
 
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
