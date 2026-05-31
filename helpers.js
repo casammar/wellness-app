@@ -1,0 +1,98 @@
+export function parseGoals(planText) {
+  const goals = [];
+  const sectionMatch = planText.match(/(?:Challenge Tracker|Daily Habit Tracker)([\s\S]*?)(?=\n## |$)/i);
+  if (!sectionMatch) return goals;
+  const section = sectionMatch[1];
+  const rows = section.split('\n').filter(l =>
+    l.startsWith('|') && !l.includes('---') && !/\|\s*#\s*\|/i.test(l)
+  );
+  rows.forEach((row, i) => {
+    const cols = row.split('|').filter(c => c.trim()).map(c => c.trim());
+    if (cols.length >= 3) {
+      goals.push({
+        id: i + 1,
+        habit: cols[1].replace(/\*+/g, '').trim() || '',
+        target: cols[2] || '',
+        points: parseInt(cols[3]?.match(/\d+/)?.[0]) || 5,
+      });
+    }
+  });
+  return goals;
+}
+
+export function parseChallengeName(planText) {
+  const nameSection = planText.match(/##\s+[^\n]*Challenge Name[^\n]*\n+([^\n]+)/i);
+  if (nameSection) {
+    const line = nameSection[1].replace(/\*+/g, '').replace(/^One line:\s*/i, '').trim();
+    const name = line.split(/\s*[—–-]\s*/)[0].trim();
+    if (name.length >= 3 && name.length <= 80) return name;
+  }
+  const h1 = planText.match(/^#\s+(.+)$/m);
+  if (h1) {
+    const name = h1[1].replace(/[*_`#]/g, '').trim();
+    if (name.length >= 3 && name.length <= 80) return name;
+  }
+  return planText.match(/\*\*([^*\n]{3,60})\*\*/)?.[1] || 'Wellness Challenge';
+}
+
+export function durationToDays(duration) {
+  if (/3\s*day/i.test(duration)) return 3;
+  if (/2\s*week/i.test(duration)) return 14;
+  return 7;
+}
+
+export function computeLogTotals(logs) {
+  return {
+    water:   logs.filter(l=>l.type==='water').reduce((s,l)=>s+(parseFloat(l.value)||0),0),
+    steps:   logs.filter(l=>l.type==='steps').reduce((s,l)=>s+(parseFloat(l.value)||0),0),
+    active:  logs.filter(l=>l.cat==='physical'&&l.type!=='steps').reduce((s,l)=>s+(parseFloat(l.duration||l.value)||0),0),
+    mindful: logs.filter(l=>['meditate','breathe','stretch'].includes(l.type)).reduce((s,l)=>s+(parseFloat(l.duration||l.value)||0),0),
+    meals:   logs.filter(l=>['meal','snack'].includes(l.type)).length,
+    sleep:   logs.filter(l=>l.type==='sleep').reduce((s,l)=>s+(parseFloat(l.value)||0),0),
+  };
+}
+
+export function matchGoalToTotals(goal, totals) {
+  const h = (goal.habit + ' ' + goal.target).toLowerCase();
+  const targetNum = parseFloat(goal.target.replace(/,/g, '').match(/[\d.]+/)?.[0] || '0');
+  if (/step|10[,.]?000/.test(h))                                             return { logged: totals.steps,   targetNum };
+  if (/water|cup|glass|hydrat/.test(h))                                      return { logged: totals.water,   targetNum };
+  if (/stretch|meditat|mindful|breath|yoga/.test(h))                         return { logged: totals.mindful, targetNum };
+  if (/sleep|rest/.test(h))                                                  return { logged: totals.sleep,   targetNum };
+  if (/meal|eat|food|healthy/.test(h))                                       return { logged: totals.meals,   targetNum };
+  if (/walk|run|exercise|workout|active|physical|gym|commute|minute|min/.test(h)) return { logged: totals.active,  targetNum };
+  return { logged: 0, targetNum };
+}
+
+export function parseWeeklyMilestones(planText) {
+  const weeks = [];
+  const sectionMatch = planText.match(/Weekly Milestones([\s\S]*?)(?=\n## |$)/i);
+  if (!sectionMatch) return weeks;
+  const section = sectionMatch[1];
+  const rows = section.split('\n').filter(l =>
+    l.startsWith('|') && !l.includes('---') && !/\|\s*week\s*\|/i.test(l)
+  );
+  rows.forEach((row, i) => {
+    const cols = row.split('|').filter(c => c.trim()).map(c => c.trim());
+    if (cols.length >= 2) {
+      weeks.push({ week: i + 1, theme: cols[1] || `Week ${i + 1}`, description: cols.slice(2).filter(Boolean).join(' · ') });
+    }
+  });
+  return weeks;
+}
+
+export function generateICS(weeks, startDateStr, challengeName) {
+  const [year, month, day] = startDateStr.split('-').map(Number);
+  const start = new Date(year, month - 1, day);
+  const fmt = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('');
+  const events = weeks.map(({ week, theme, description }) => {
+    const s = new Date(start); s.setDate(start.getDate() + (week - 1) * 7);
+    const e = new Date(s); e.setDate(s.getDate() + 7);
+    const desc = (description || '').replace(/[,;\\]/g, ' ');
+    return ['BEGIN:VEVENT', `DTSTART;VALUE=DATE:${fmt(s)}`, `DTEND;VALUE=DATE:${fmt(e)}`,
+      `SUMMARY:${challengeName} – Week ${week}: ${theme}`, desc ? `DESCRIPTION:${desc}` : null,
+      `UID:wellness-w${week}-${Date.now()}@wellness-builder`, 'END:VEVENT'].filter(Boolean).join('\r\n');
+  });
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Wellness Challenge Builder//EN',
+    'CALSCALE:GREGORIAN','X-WR-CALNAME:Wellness Challenge',...events,'END:VCALENDAR'].join('\r\n');
+}
