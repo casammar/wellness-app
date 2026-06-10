@@ -1059,14 +1059,22 @@
       }
     };
   </script>
-  <!-- Start of selfemployed-38629 Zendesk Widget script -->
-  <script id="ze-snippet" src="https://static.zdassets.com/ekr/snippet.js?key=c611592a-eac4-4ed7-99d5-98f89fd7a698"> </script>
-  <!-- End of selfemployed-38629 Zendesk Widget script -->
   <script>
-    zE(function() {
-      zE('webWidget', 'hide');
-      zE('webWidget:on', 'close', function() { zE('webWidget', 'hide'); });
-    });
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(config => {
+        if (!config.zendeskKey) return;
+        const s = document.createElement('script');
+        s.id = 'ze-snippet';
+        s.src = 'https://static.zdassets.com/ekr/snippet.js?key=' + config.zendeskKey;
+        s.onload = function() {
+          zE(function() {
+            zE('webWidget', 'hide');
+            zE('webWidget:on', 'close', function() { zE('webWidget', 'hide'); });
+          });
+        };
+        document.head.appendChild(s);
+      });
     function toggleZendesk() {
       zE('webWidget', 'show');
       zE('webWidget', 'open');

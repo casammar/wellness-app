@@ -104,7 +104,7 @@ function writeChallenges(challenges) {
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 app.get('/api/config', (req, res) => {
-  res.json({ provider: PROVIDER, model: ACTIVE_MODEL });
+  res.json({ provider: PROVIDER, model: ACTIVE_MODEL, zendeskKey: process.env.ZENDESK_WIDGET_KEY });
 });
 
 app.post('/api/generate', async (req, res) => {
