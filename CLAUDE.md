@@ -11,7 +11,9 @@ npm stop           # Kill the running server process
 npm run restart    # Stop then start
 ```
 
-No test suite or linter is configured.
+**Test suite**: `npm test` runs `node --test test/**/*.test.js`. Tests use `node:test` + `node:assert/strict`. See `test/helpers.test.js` for the pattern.
+
+**Linter**: `npm run lint` runs ESLint (config in `eslint.config.js`).
 
 ## Architecture
 
