@@ -7,7 +7,7 @@ import { dirname, join } from 'path';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import {
   parseGoals, parseChallengeName, durationToDays,
-  computeLogTotals, matchGoalToTotals, parseWeeklyMilestones, generateICS,
+  computeLogTotals, matchGoalToTotals, parseWeeklyMilestones, generateICS, maskMessages,
 } from './helpers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -425,6 +425,15 @@ app.post('/api/marketplace-match', async (req, res) => {
 app.post('/api/chat', async (req, res) => {
   const { messages, chatType } = req.body;
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Missing messages' });
+
+  let maskedMessages;
+  try {
+    maskedMessages = maskMessages(messages);
+  } catch (err) {
+    console.error('PII masking error:', err.message);
+    return res.status(500).json({ error: 'Unable to process message' });
+  }
+
   const systemPrompt = chatType === 'nutrition' ? NUTRITION_CHAT_SYSTEM : CHAT_SYSTEM;
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -434,7 +443,7 @@ app.post('/api/chat', async (req, res) => {
     if (PROVIDER === 'lmstudio') {
       const stream = await lmstudio.chat.completions.create({
         model: LM_MODEL, max_tokens: 1024, stream: true,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        messages: [{ role: 'system', content: systemPrompt }, ...maskedMessages],
       });
       for await (const chunk of stream) {
         const text = chunk.choices[0]?.delta?.content || '';
@@ -444,7 +453,7 @@ app.post('/api/chat', async (req, res) => {
       const stream = anthropic.messages.stream({
         model: CLAUDE_MODEL, max_tokens: 1024,
         system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
-        messages,
+        messages: maskedMessages,
       });
       for await (const event of stream) {
         if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {

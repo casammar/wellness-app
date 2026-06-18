@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   parseGoals, parseChallengeName, durationToDays,
   computeLogTotals, matchGoalToTotals, parseWeeklyMilestones, generateICS,
+  redactPII, maskMessages,
 } from '../helpers.js';
 
 const SAMPLE_PLAN = `
@@ -210,5 +211,105 @@ describe('generateICS', () => {
     const ics = generateICS(weeks, '2025-01-06', 'Team Fit');
     assert.ok(ics.includes('SUMMARY:Team Fit'));
     assert.ok(ics.includes('Foundation'));
+  });
+});
+
+describe('redactPII', () => {
+  it('redacts an email address', () => {
+    assert.equal(redactPII('contact me at jane@example.com'), 'contact me at [REDACTED_EMAIL]');
+  });
+
+  it('redacts an SSN in ###-##-#### format', () => {
+    assert.equal(redactPII('SSN: 123-45-6789'), 'SSN: [REDACTED_SSN]');
+  });
+
+  it('redacts a phone number with dashes', () => {
+    assert.equal(redactPII('call 555-123-4567'), 'call [REDACTED_PHONE]');
+  });
+
+  it('redacts a phone number in (xxx) xxx-xxxx format', () => {
+    assert.equal(redactPII('call (555) 123-4567'), 'call [REDACTED_PHONE]');
+  });
+
+  it('does NOT redact a bare step-count number with no separators', () => {
+    assert.equal(redactPII('I hit 10000 steps today'), 'I hit 10000 steps today');
+  });
+
+  it('redacts a valid credit card number (Luhn-valid)', () => {
+    assert.equal(redactPII('card 4532015112830366'), 'card [REDACTED_CC]');
+  });
+
+  it('does NOT redact a long numeric sequence that fails Luhn', () => {
+    assert.equal(redactPII('order id 1234567890123456'), 'order id 1234567890123456');
+  });
+
+  it('redacts a valid IPv4 address', () => {
+    assert.equal(redactPII('connect to 192.168.1.1'), 'connect to [REDACTED_IP]');
+  });
+
+  it('does NOT redact an invalid IPv4-shaped number (octet > 255)', () => {
+    assert.equal(redactPII('ratio 999.999.999.999'), 'ratio 999.999.999.999');
+  });
+
+  it('redacts a name following a self-introduction phrase', () => {
+    assert.equal(redactPII('Hi, my name is Sarah Connor'), 'Hi, my name is [REDACTED_NAME]');
+  });
+
+  it('does not redact capitalized words outside intro phrasing', () => {
+    assert.equal(redactPII('I love Mondays and Tuesdays'), 'I love Mondays and Tuesdays');
+  });
+
+  it('redacts multiple PII types in one string', () => {
+    const input = 'Email jane@example.com or call 555-123-4567';
+    const out = redactPII(input);
+    assert.match(out, /\[REDACTED_EMAIL\]/);
+    assert.match(out, /\[REDACTED_PHONE\]/);
+  });
+
+  it('returns non-string input unchanged', () => {
+    assert.equal(redactPII(42), 42);
+  });
+});
+
+describe('maskMessages', () => {
+  it('masks PII across every message in the array, not just the last', () => {
+    const messages = [
+      { role: 'user', content: 'my email is a@b.com' },
+      { role: 'assistant', content: 'got it' },
+      { role: 'user', content: 'call 555-123-4567' },
+    ];
+    const masked = maskMessages(messages);
+    assert.match(masked[0].content, /\[REDACTED_EMAIL\]/);
+    assert.match(masked[2].content, /\[REDACTED_PHONE\]/);
+  });
+
+  it('does not mutate the original messages array or its objects', () => {
+    const original = [{ role: 'user', content: 'a@b.com' }];
+    const copy = JSON.parse(JSON.stringify(original));
+    maskMessages(original);
+    assert.deepEqual(original, copy);
+  });
+
+  it('preserves message role and shape', () => {
+    const masked = maskMessages([{ role: 'user', content: 'hello' }]);
+    assert.equal(masked[0].role, 'user');
+  });
+
+  it('handles content-block array format (Anthropic style)', () => {
+    const messages = [{ role: 'user', content: [{ type: 'text', text: 'a@b.com' }] }];
+    const masked = maskMessages(messages);
+    assert.match(masked[0].content[0].text, /\[REDACTED_EMAIL\]/);
+  });
+
+  it('throws on non-array input (fail-closed contract)', () => {
+    assert.throws(() => maskMessages('not an array'));
+  });
+
+  it('throws on a malformed message entry', () => {
+    assert.throws(() => maskMessages([null]));
+  });
+
+  it('returns an empty array for an empty input array', () => {
+    assert.deepEqual(maskMessages([]), []);
   });
 });
